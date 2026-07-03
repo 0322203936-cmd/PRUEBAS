@@ -19,7 +19,18 @@ genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 try:
     from paddleocr import PaddleOCR
     # lang='es' para español, use_angle_cls=False para ahorrar 200MB de RAM
-    reader = PaddleOCR(use_angle_cls=False, lang='es')
+    # Parámetros extremos para 512MB RAM:
+    reader = PaddleOCR(
+        use_angle_cls=False, 
+        lang='es',
+        use_gpu=False,
+        enable_mkldnn=False, # Desactiva aceleración pesada
+        cpu_threads=1,       # Evita crear múltiples hilos que consumen RAM
+        max_batch_size=1,    # Detección de una en una
+        rec_batch_num=1,     # Reconocimiento de una en una (CRÍTICO para evitar pico de RAM)
+        det_limit_side_len=960,
+        det_db_score_mode='fast'
+    )
 except ImportError:
     print("PaddleOCR no está instalado.")
     reader = None
