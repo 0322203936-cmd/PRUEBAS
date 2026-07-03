@@ -23,6 +23,40 @@ except ImportError:
 except Exception as e:
     print(f"Error inicializando pytesseract: {e}")
 
+# ============================================================
+# MAPEO DE NOMBRES: Acuse Walmart → Nombre en Base de Datos
+# Columna izquierda = como aparece en Supabase
+# Columna derecha = como aparece en la hoja acuse de Walmart
+# ============================================================
+ACUSE_A_DB = {
+    "bqt lili asiatic 6 t":      "BQT LILI ASIATIC 6T",
+    "bqt lili asiatic 6t":       "BQT LILI ASIATIC 6T",
+    "bqt rosa 18 tallos":        "BQT 18 ROSAS",
+    "bqt mixto premium":         "BQT MDAY PREMIUM",
+    "rosa 12 tallos":            "ROSAS 12 MDAY",
+    "jarron mday":               "JARRON MDAY",
+    "bqt mixto m":               "BQT MDAY M",
+    "bouquet rosas 12 t":        "BQT ROSAS 12T",
+    "bouquet rosas 12t":         "BQT ROSAS 12T",
+    "bouquet rosas 6 t":         "BQT ROSAS 6T",
+    "bouquet rosas 6t":          "BQT ROSAS 6T",
+    "bqt snapdragon 8 t":        "BQT SNAPDRAGON 8T",
+    "bqt snapdragon 8t":         "BQT SNAPDRAGON 8T",
+    "bouquets docena de rosas":  "BQT ROSAS 12T BAJA",
+    "bouquet mixto 9 t":         "BQT MIXTO 9T",
+    "bouquet mixto 9t":          "BQT MIXTO 9T",
+    "bouquet mixto 12 t":        "BQT MIXTO 12T",
+    "bouquet mixto 12t":         "BQT MIXTO 12T",
+    "bouquet mixto 15 t":        "BQT MIXTO 15T",
+    "bouquet mixto 15t":         "BQT MIXTO 15T",
+}
+
+# Mapa inverso: DB name → lista de posibles nombres en acuse (para búsqueda)
+DB_A_ACUSE = {}
+for acuse_name, db_name in ACUSE_A_DB.items():
+    DB_A_ACUSE.setdefault(db_name.upper(), []).append(acuse_name)
+# ============================================================
+
 def _corregir_rotacion_exif(img_bytes_raw):
     """Corrige rotación usando metadatos EXIF de la foto."""
     try:
@@ -1330,21 +1364,52 @@ def analizar_recibo():
         print(f"--- OCR RECIBO (Tesseract OCR) --- Extrajo {len(boxes)} cajas.", flush=True)
 
         # 1. Encontrar en qué orden aparecen los productos esperados
-        productos_encontrados = [] # guardará el dict del producto original
-        for b in boxes:
-            texto = b["clean"]
-            for prod in esperados:
-                if prod in productos_encontrados:
-                    continue # ya lo encontramos
-                
-                prod_name = prod.get("producto", "")
+        # Unimos todo el texto para poder buscar nombres completos (ej: "bouquet rosas 12 t")
+        full_text_clean = " ".join([b["clean"] for b in boxes])
+        
+        productos_encontrados_con_indice = []
+        
+        for prod in esperados:
+            prod_name = prod.get("producto", "")
+            
+            # 1a. Buscar si alguno de los nombres exactos de Walmart está en el ticket
+            nombres_validos = DB_A_ACUSE.get(prod_name.upper(), [])
+            encontrado = False
+            indice_aparicion = -1
+            
+            for nombre_acuse in nombres_validos:
+                idx = full_text_clean.find(nombre_acuse)
+                if idx != -1:
+                    encontrado = True
+                    indice_aparicion = idx
+                    break
+                    
+            # 1b. Fallback: matching difuso por si el producto no está mapeado
+            if not encontrado:
                 prod_clean = unicodedata.normalize('NFKD', prod_name).encode('ASCII', 'ignore').decode('utf-8').lower()
                 words = [w for w in prod_clean.split() if len(w) > 3]
                 
-                # si más del 50% de las palabras largas coinciden, es el producto
-                matched = [w for w in words if w in texto]
-                if len(words) > 0 and (len(matched) / len(words)) >= 0.5:
-                    productos_encontrados.append(prod)
+                # Buscar palabra por palabra en la lista de cajas para sacar un índice aproximado
+                match_count = 0
+                primer_indice_palabra = -1
+                
+                for i, b in enumerate(boxes):
+                    if b["clean"] in words:
+                        match_count += 1
+                        if primer_indice_palabra == -1:
+                            primer_indice_palabra = i
+                            
+                if len(words) > 0 and (match_count / len(words)) >= 0.5:
+                    encontrado = True
+                    # Aproximamos el índice en el string completo
+                    indice_aparicion = primer_indice_palabra * 5 
+                    
+            if encontrado:
+                productos_encontrados_con_indice.append((indice_aparicion, prod))
+
+        # Ordenar los productos detectados según aparecieron en el texto (de arriba a abajo)
+        productos_encontrados_con_indice.sort(key=lambda x: x[0])
+        productos_encontrados = [p[1] for p in productos_encontrados_con_indice]
 
         # Si faltó alguno que no se detectó bien, lo agregamos al final para no perderlo
         for prod in esperados:
