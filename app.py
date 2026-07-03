@@ -18,8 +18,8 @@ genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 # Intentamos importar PaddleOCR
 try:
     from paddleocr import PaddleOCR
-    # lang='es' para español, use_angle_cls para enderezar texto
-    reader = PaddleOCR(use_angle_cls=True, lang='es')
+    # lang='es' para español, use_angle_cls=False para ahorrar 200MB de RAM
+    reader = PaddleOCR(use_angle_cls=False, lang='es')
 except ImportError:
     print("PaddleOCR no está instalado.")
     reader = None
@@ -1194,15 +1194,18 @@ def api_analizar_factura():
         img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
         
         # --- PREPROCESAMIENTO (Escalado Inteligente) ---
-        # Escalar imagen si es muy pequeña para mejorar OCR
+        # Escalar imagen (DOWNSCALE) si es muy grande para no asfixiar la RAM en Render (512MB)
         h, w = img.shape[:2]
-        if w < 2000:
-            scale = 2000 / w
+        if w > 1000:
+            scale = 1000 / w
+            img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+        elif w < 600:
+            scale = 600 / w
             img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
         # -----------------------------------------------
         
-        # Usar PaddleOCR
-        result = reader.ocr(img, cls=True)
+        # Usar PaddleOCR (cls=False para ahorrar memoria)
+        result = reader.ocr(img, cls=False)
         
         boxes = []
         if result and result[0]:
@@ -1356,14 +1359,17 @@ def analizar_recibo():
         img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
         
         # --- PREPROCESAMIENTO (Escalado Inteligente) ---
-        # Escalar imagen si es muy pequeña para mejorar OCR
+        # Escalar imagen (DOWNSCALE) si es muy grande para no asfixiar la RAM en Render (512MB)
         h, w = img.shape[:2]
-        if w < 2000:
-            scale = 2000 / w
+        if w > 1000:
+            scale = 1000 / w
+            img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+        elif w < 600:
+            scale = 600 / w
             img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
         # -----------------------------------------------
         
-        result = reader.ocr(img, cls=True)
+        result = reader.ocr(img, cls=False)
         
         boxes = []
         if result and result[0]:
