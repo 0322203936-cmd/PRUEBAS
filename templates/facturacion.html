@@ -212,7 +212,7 @@
 
 
         <!-- Upload Area -->
-        <label for="fileInput" class="upload-card" id="uploadArea">
+        <label for="fileInput" class="upload-card" id="uploadArea" onclick="if(this.classList.contains('disabled')) return false; this.classList.add('disabled'); this.style.opacity='0.5'; setTimeout(()=>{this.classList.remove('disabled'); this.style.opacity='1';}, 5000);">
             <span class="upload-icon">📸</span>
             <div class="upload-title">Tomar foto de la Factura</div>
         </label>
@@ -258,7 +258,7 @@
                 <!-- Javascript will populate this -->
             </div>
             <div id="conciliacionContainer" style="margin-top: 30px;">
-                <label for="reciboInput" id="btnEscanearRecibo" class="btn w-100" style="background: #2563eb; color: white; padding: 14px; font-weight: bold; border-radius: 12px; border: none; font-size: 16px; margin-bottom: 10px; display: inline-block; text-align: center; cursor: pointer;">
+                <label for="reciboInput" id="btnEscanearRecibo" class="btn w-100" style="background: #2563eb; color: white; padding: 14px; font-weight: bold; border-radius: 12px; border: none; font-size: 16px; margin-bottom: 10px; display: inline-block; text-align: center; cursor: pointer;" onclick="if(this.classList.contains('disabled')) return false; this.classList.add('disabled'); this.style.opacity='0.5'; setTimeout(()=>{this.classList.remove('disabled'); this.style.opacity='1';}, 5000);">
                     📸 Escanear Acuse de Recibo
                 </label>
                 <button id="btnCancelarFactura" class="btn w-100" style="background: #ef4444; color: white; padding: 14px; font-weight: bold; border-radius: 12px; border: none; font-size: 16px; margin-top: 10px;">
