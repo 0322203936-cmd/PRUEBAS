@@ -15,28 +15,13 @@ import google.generativeai as genai
 # Configurar Gemini API
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 
-# Intentamos importar PaddleOCR
+# Intentamos importar pytesseract
 try:
-    from paddleocr import PaddleOCR
-    # lang='es' para español, use_angle_cls=False para ahorrar 200MB de RAM
-    # Parámetros extremos para 512MB RAM:
-    reader = PaddleOCR(
-        use_angle_cls=False, 
-        lang='es',
-        use_gpu=False,
-        enable_mkldnn=False, # Desactiva aceleración pesada
-        cpu_threads=1,       # Evita crear múltiples hilos que consumen RAM
-        max_batch_size=1,    # Detección de una en una
-        rec_batch_num=1,     # Reconocimiento de una en una (CRÍTICO para evitar pico de RAM)
-        det_limit_side_len=736, # Límite aún más bajo para el detector
-        det_db_score_mode='fast'
-    )
+    import pytesseract
 except ImportError:
-    print("PaddleOCR no está instalado.")
-    reader = None
+    print("pytesseract no está instalado.")
 except Exception as e:
-    print(f"Error inicializando PaddleOCR: {e}")
-    reader = None
+    print(f"Error inicializando pytesseract: {e}")
 
 def _corregir_rotacion_exif(img_bytes_raw):
     """Corrige rotación usando metadatos EXIF de la foto."""
@@ -1215,24 +1200,16 @@ def api_analizar_factura():
             scale = 600 / w
             img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
             
-        # Convertir a escala de grises para aligerar la memoria durante el procesamiento de PaddleOCR
+        # Convertir a escala de grises para mejorar Tesseract
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR) # PaddleOCR exige 3 canales, pero ya sin color
-        # -----------------------------------------------
         
-        # Usar PaddleOCR (cls=False para ahorrar memoria)
-        result = reader.ocr(img, cls=False)
+        # Binarización simple para mejorar contraste del texto negro sobre fondo blanco
+        _, img = cv2.threshold(img, 150, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
         
-        # Limpiar basura de memoria inmediatamente después del OCR
-        import gc
-        gc.collect()
+        # Usar Tesseract para extraer todo el texto
+        import pytesseract
+        full_text = pytesseract.image_to_string(img, lang='spa')
         
-        boxes = []
-        if result and result[0]:
-            for line in result[0]:
-                boxes.append(line[1][0])
-                
-        full_text = " ".join(boxes)
         ocr_clean_lower = full_text.lower()
         
         # Heurísticas de extracción locales
@@ -1378,35 +1355,44 @@ def analizar_recibo():
         file_bytes = np.frombuffer(img_bytes, np.uint8)
         img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
         
-        # --- PREPROCESAMIENTO EXTREMO (Para 512MB RAM) ---
+        # --- PREPROCESAMIENTO PARA TESSERACT ---
         h, w = img.shape[:2]
-        if w > 600:
-            scale = 600 / w
+        if w > 1000:
+            scale = 1000 / w
             img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
         elif w < 600:
             scale = 600 / w
             img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
             
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        _, img = cv2.threshold(img, 150, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
         # -----------------------------------------------
         
-        result = reader.ocr(img, cls=False)
+        import pytesseract
+        from pytesseract import Output
         
-        import gc
-        gc.collect()
+        # Extraer datos con Tesseract
+        data = pytesseract.image_to_data(img, lang='spa', output_type=Output.DICT)
         
         boxes = []
-        if result and result[0]:
-            for line in result[0]:
-                box = line[0]
-                text = line[1][0]
+        n_boxes = len(data['text'])
+        for i in range(n_boxes):
+            conf = int(data['conf'][i])
+            text = data['text'][i].strip()
+            # Ignorar palabras vacías o con muy baja confianza
+            if text and conf > 20:
+                x = data['left'][i]
+                y = data['top'][i]
+                width = data['width'][i]
+                height = data['height'][i]
+                
                 # Coordenadas centrales
-                x_center = sum([p[0] for p in box]) / 4
-                y_center = sum([p[1] for p in box]) / 4
+                x_center = x + (width / 2)
+                y_center = y + (height / 2)
                 
                 boxes.append({
                     "text": text,
+                    "raw": text,
                     "clean": unicodedata.normalize('NFKD', text).encode('ASCII', 'ignore').decode('utf-8').lower(),
                     "x": x_center,
                     "y": y_center
@@ -1416,7 +1402,7 @@ def analizar_recibo():
         boxes.sort(key=lambda b: (round(b["y"] / 15.0), b["x"]))
         
         ocr_raw = "\n".join([b["text"] for b in boxes])
-        print(f"--- OCR RECIBO (Paddle OCR) --- Extrajo {len(boxes)} cajas.", flush=True)
+        print(f"--- OCR RECIBO (Tesseract OCR) --- Extrajo {len(boxes)} cajas.", flush=True)
 
         # 1. Encontrar en qué orden aparecen los productos esperados
         productos_encontrados = [] # guardará el dict del producto original

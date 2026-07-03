@@ -2,9 +2,7 @@ Flask
 gunicorn
 msal
 requests
-paddlepaddle==2.6.2
-paddleocr==2.8.1
+pytesseract
 opencv-python-headless
-
 supabase
 google-generativeai
