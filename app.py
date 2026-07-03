@@ -1189,26 +1189,28 @@ def api_analizar_factura():
         # Leer la imagen con OpenCV
         img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
         
-        # --- PREPROCESAMIENTO EXTREMO (Para 512MB RAM) ---
-        # Forzar un máximo de 600px de ancho. Si es más grande, reducir brutalmente.
+        # --- PREPROCESAMIENTO PARA TESSERACT ---
+        # Tesseract funciona MEJOR con imágenes más grandes
         h, w = img.shape[:2]
-        if w > 600:
-            scale = 600 / w
-            img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
-        # Si la imagen es muy pequeña, la escalamos SOLO a 600 (antes era 2000!)
-        elif w < 600:
-            scale = 600 / w
+        if w < 1500:
+            scale = 1500 / w
             img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
-            
-        # Convertir a escala de grises para mejorar Tesseract
+        elif w > 3000:
+            scale = 3000 / w
+            img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+        
+        # Escala de grises
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         
-        # Binarización simple para mejorar contraste del texto negro sobre fondo blanco
-        _, img = cv2.threshold(img, 150, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+        # Umbral adaptativo (mejor para iluminación variable de fotos con celular)
+        img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                    cv2.THRESH_BINARY, 31, 15)
+        # -----------------------------------------------
         
-        # Usar Tesseract para extraer todo el texto
+        # Usar Tesseract con configuración optimizada para facturas
         import pytesseract
-        full_text = pytesseract.image_to_string(img, lang='spa')
+        config_tess = '--psm 6 --oem 1'
+        full_text = pytesseract.image_to_string(img, lang='spa', config=config_tess)
         
         ocr_clean_lower = full_text.lower()
         
