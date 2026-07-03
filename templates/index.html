@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registro de Merma e Inventario</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="manifest" href="/static/manifest.json">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            background: #f0f2f5;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0; padding: 0;
+        }
+
+        .phone-wrapper {
+            width: 100%;
+            max-width: 480px;
+            min-height: 100vh;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 18px 16px 14px;
+            border-bottom: 1px solid #e8eaed;
+        }
+
+        .back-arrow { color: #1a73e8; font-size: 20px; text-decoration: none; }
+
+        .app-header h5 {
+            color: #1a73e8; font-size: 17px; font-weight: 600; margin: 0;
+        }
+
+        /* Banner offline */
+        #offlineBanner {
+            display: none;
+        }
+        .offline-banner.waking {
+            background: #e8eaf6;
+            color: #3949ab;
+            border-bottom: 1px solid #9fa8da;
+        }
+
+        .form-body { padding: 16px; flex: 1; overflow-x: hidden; }
+
+        .field-label {
+            font-weight: 600; font-size: 14px; color: #202124;
+            margin-bottom: 8px; display: block;
+        }
+
+        .tienda-select-wrapper { position: relative; margin-bottom: 16px; }
+
+        .tienda-select-wrapper select {
+            width: 100%; appearance: none; -webkit-appearance: none;
+            border: 1.5px solid #dadce0; border-radius: 8px;
+            padding: 10px 40px 10px 14px; font-size: 14px; font-weight: 500;
+            color: #202124; background: #fff; cursor: pointer; outline: none;
+        }
+
+        .tienda-select-wrapper select:focus { border-color: #1a73e8; }
+
+        .tienda-select-wrapper::after {
+            content: ''; position: absolute; right: 14px; top: 50%;
+            transform: translateY(-50%);
+            border-left: 5px solid transparent; border-right: 5px solid transparent;
+            border-top: 6px solid #5f6368; pointer-events: none;
+        }
+
+        .field-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+
+        .field-row-label { font-weight: 600; font-size: 14px; color: #202124; min-width: 70px; }
+
+        .field-row input {
+            flex: 1; border: 1.5px solid #dadce0; border-radius: 6px;
+            padding: 8px 12px; font-size: 14px; color: #202124; outline: none;
+        }
+
+        .field-row input:focus { border-color: #1a73e8; }
+
+        .section-title { font-size: 14px; font-weight: 700; color: #202124; margin: 16px 0 10px; }
+
+        /* Cuarto Frío toggle */
+        .cf-toggle {
+            display: flex; align-items: center; justify-content: space-between;
+            border: 1.5px solid #0d9488; border-radius: 10px;
+            padding: 11px 14px; margin-bottom: 14px;
+            cursor: pointer; background: #f0fdfa; user-select: none;
+        }
+
+        .cf-toggle-left { display: flex; align-items: center; gap: 8px; }
+        .cf-icon { font-size: 18px; }
+        .cf-toggle-label { font-weight: 700; font-size: 14px; color: #0d9488; }
+        .cf-arrow { font-size: 13px; color: #0d9488; transition: transform 0.2s; }
+        .cf-arrow.open { transform: rotate(180deg); }
+
+        .cf-panel {
+            display: none; border: 1.5px solid #0d9488; border-radius: 10px;
+            padding: 10px; margin-bottom: 14px; background: #f0fdfa;
+        }
+        .cf-panel.open { display: block; }
+
+        .cf-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+
+        .cf-table thead th {
+            font-size: 12px; font-weight: 600; color: #0d9488;
+            padding: 5px 4px; text-align: left; border-bottom: 1px solid #99f6e4;
+        }
+
+        .cf-table thead th.col-exist { text-align: center; width: 80px; }
+        .cf-table tbody tr { border-top: 1px solid #ccfbf1; }
+        .cf-table tbody td { padding: 5px 3px; font-size: 12px; vertical-align: middle; }
+
+        /* Tabla principal */
+        .products-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+
+        .products-table thead th {
+            font-size: 12px; font-weight: 600; color: #5f6368;
+            padding: 6px 4px; text-align: left; border-bottom: 1px solid #e8eaed;
+        }
+
+        .products-table thead th.col-inv,
+        .products-table thead th.col-merma { text-align: center; width: 62px; }
+        .products-table thead th.col-razon { width: 105px; }
+
+        .products-table tbody tr { border-top: 1px solid #f1f3f4; }
+        .products-table tbody td { padding: 6px 3px; font-size: 12px; vertical-align: middle; }
+
+        .product-name-cell { font-size: 12px; color: #202124; font-weight: 500; word-break: break-word; }
+
+        .num-input {
+            width: 56px; border: 1.5px solid #dadce0; border-radius: 6px;
+            padding: 6px 4px; font-size: 13px; text-align: right; color: #202124;
+            outline: none; display: block; margin: 0 auto; -moz-appearance: textfield; background: #fff;
+        }
+        .num-input::-webkit-outer-spin-button,
+        .num-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .num-input:focus { border-color: #1a73e8; }
+
+        .cf-num-input {
+            width: 72px; border: 1.5px solid #99f6e4; border-radius: 6px;
+            padding: 6px 4px; font-size: 13px; text-align: right; color: #202124;
+            outline: none; display: block; margin: 0 auto; -moz-appearance: textfield; background: #fff;
+        }
+        .cf-num-input::-webkit-outer-spin-button,
+        .cf-num-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .cf-num-input:focus { border-color: #0d9488; }
+
+        .razon-input {
+            width: 100%; border: 1.5px solid #dadce0; border-radius: 6px;
+            padding: 6px 6px; font-size: 12px; color: #202124; outline: none; background: #fff;
+            appearance: none; -webkit-appearance: none;
+        }
+        .razon-input:focus { border-color: #1a73e8; }
+
+        .bottom-bar {
+            display: flex; gap: 12px; padding: 16px;
+            border-top: 1px solid #e8eaed; background: #fff;
+        }
+
+        .btn-cancelar {
+            flex: 1; border: 1.5px solid #dadce0; background: #fff; color: #202124;
+            border-radius: 6px; padding: 11px; font-size: 15px; font-weight: 500; cursor: pointer;
+        }
+
+        .btn-guardar {
+            flex: 1; background: #1a73e8; color: #fff; border: none;
+            border-radius: 6px; padding: 11px; font-size: 15px; font-weight: 600; cursor: pointer;
+        }
+        .btn-guardar:hover { background: #1557b0; }
+        .btn-guardar:disabled { opacity: 0.7; }
+    </style>
+</head>
+<body>
+<div class="phone-wrapper">
+
+    <div class="app-header">
+        <a href="/" class="back-arrow">&#8592;</a>
+        <h5>Registro de Merma e Inventario</h5>
+    </div>
+
+    <!-- Banner de estado online/offline -->
+    <div id="offlineBanner" class="offline-banner"></div>
+
+    <form method="POST" action="/inventario" id="mainForm" class="form-body">
+
+        <span class="field-label">Tienda:</span>
+        <div class="tienda-select-wrapper">
+            <select name="tienda" id="tiendaSelect" required tabindex="1">
+                <option value="" disabled selected>Selecciona una tienda…</option>
+                <option value="SC MEXICALI NOVENA">SC MEXICALI NOVENA</option>
+                <option value="SC NUEVO MEXICALI">SC NUEVO MEXICALI</option>
+                <option value="SC PLAZA SAN PEDRO">SC PLAZA SAN PEDRO</option>
+                <option value="SC MEXICALI">SC MEXICALI</option>
+                <option value="SC PLAYAS DE TIJUANA">SC PLAYAS DE TIJUANA</option>
+                <option value="SC LOMAS DE SANTA FE">SC LOMAS DE SANTA FE</option>
+                <option value="SC GALERIAS DEL VALLE">SC GALERIAS DEL VALLE</option>
+                <option value="SC TIJUANA 2000">SC TIJUANA 2000</option>
+                <option value="SC TECATE GARITA">SC TECATE GARITA</option>
+                <option value="SC ROSARITO">SC ROSARITO</option>
+                <option value="SC ENSENADA CENTRO">SC ENSENADA CENTRO</option>
+                <option value="SC MACROPLAZA INSURGENTES">SC MACROPLAZA INSURGENTES</option>
+                <option value="SC ENSENADA">SC ENSENADA</option>
+                <option value="SC TIJUANA HIPODROMO">SC TIJUANA HIPODROMO</option>
+                <option value="SC PACIFICO">SC PACIFICO</option>
+                <option value="SC DIAZ ORDAZ">SC DIAZ ORDAZ</option>
+            </select>
+        </div>
+
+        <div class="field-row">
+            <span class="field-row-label">Fecha:</span>
+            <input type="text" name="fecha" id="fechaInput" placeholder="MM/DD/YY" required tabindex="2">
+        </div>
+
+        <div class="field-row">
+            <span class="field-row-label">Usuario:</span>
+            <div class="tienda-select-wrapper" style="flex:1; margin-bottom:0;">
+                <select name="usuario" id="usuarioInput" required tabindex="3">
+                    <option value="" disabled selected>Selecciona usuario…</option>
+                    <option value="Mizael">Mizael</option>
+                    <option value="Esteban">Esteban</option>
+                    <option value="Victor">Victor</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Cajita Cuarto Frío -->
+        <div class="cf-toggle" onclick="toggleCF()">
+            <div class="cf-toggle-left">
+                <span class="cf-icon">❄️</span>
+                <span class="cf-toggle-label">Inventario Cuarto Frío</span>
+            </div>
+            <span class="cf-arrow" id="cfArrow">▼</span>
+        </div>
+
+        <div class="cf-panel" id="cfPanel">
+            <table class="cf-table">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th class="col-exist">Existencia</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set productos_cf = [
+                        'BQT ALSTROEMERI 8T','BQT GIRASOL 6T','BQT LILI ASIATIC 6T',
+                        'BQT MINI CLAVEL 8T','BQT MIXTO 12T','BQT MIXTO 15T',
+                        'BQT MIXTO 18 T','BQT MIXTO 9T','BQT ROSAS 12T',
+                        'BQT ROSAS 12T BAJA','BQT ROSAS 6T','BQT SNAPDRAGON 8T'
+                    ] %}
+                    {% for p in productos_cf %}
+                    <tr>
+                        <td class="product-name-cell">{{ p }}</td>
+                        <td>
+                            <input class="cf-num-input" type="number" name="cf_existencia[]"
+                                value="" min="0" inputmode="numeric" placeholder="0">
+                        </td>
+                        <input type="hidden" name="cf_producto[]" value="{{ p }}">
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Productos merma/inventario -->
+        <div class="section-title">Productos Registrados:</div>
+
+        <table class="products-table">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th class="col-inv">Inv</th>
+                    <th class="col-merma">Merma</th>
+                    <th class="col-razon">Razón merma</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set productos = [
+                    'BQT ALSTROEMERI 8T','BQT GIRASOL 6T','BQT LILI ASIATIC 6T',
+                    'BQT MINI CLAVEL 8T','BQT MIXTO 12T','BQT MIXTO 15T',
+                    'BQT MIXTO 18 T','BQT MIXTO 9T','BQT ROSAS 12T',
+                    'BQT ROSAS 12T BAJA','BQT ROSAS 6T','BQT SNAPDRAGON 8T'
+                ] %}
+                {% for p in productos %}
+                <tr>
+                    <td class="product-name-cell">{{ p }}</td>
+                    <td>
+                        <input class="num-input" type="number" name="inventario[]"
+                            value="" min="0" inputmode="numeric" placeholder="0"
+                            tabindex="{{ loop.index * 3 + 1 }}" onfocus="this.select()">
+                    </td>
+                    <td>
+                        <input class="num-input" type="number" name="merma[]"
+                            value="" min="0" inputmode="numeric" placeholder="0"
+                            tabindex="{{ loop.index * 3 + 2 }}" onfocus="this.select()">
+                    </td>
+                    <td>
+                        <select class="razon-input" name="razon[]" tabindex="{{ loop.index * 3 + 3 }}">
+                            <option value="">—</option>
+                            <option value="Fecha">Fecha</option>
+                            <option value="Calidad">Calidad</option>
+                        </select>
+                    </td>
+                    <input type="hidden" name="producto[]" value="{{ p }}">
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </form>
+
+    <div class="bottom-bar">
+        <button type="button" class="btn-cancelar" onclick="cancelar()">Cancelar</button>
+        <button type="button" class="btn-guardar" id="btnGuardar" onclick="guardar()">Guardar</button>
+    </div>
+
+</div>
+
+<script src="/static/offline.js"></script>
+<script>
+    // ── Inicializar fecha ──────────────────────────────────────────────────────
+    const today = new Date();
+    document.getElementById('fechaInput').value =
+        String(today.getMonth()+1).padStart(2,'0') + '/' +
+        String(today.getDate()).padStart(2,'0') + '/' +
+        String(today.getFullYear()).slice(-2);
+
+    // ── Toggle Cuarto Frío ─────────────────────────────────────────────────────
+    function toggleCF() {
+        document.getElementById('cfPanel').classList.toggle('open');
+        document.getElementById('cfArrow').classList.toggle('open');
+    }
+
+    // ── Navegación con Enter ───────────────────────────────────────────────────
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const focusable = Array.from(
+                document.querySelectorAll('input[tabindex], select[tabindex]')
+            ).filter(el => !el.disabled && el.tabIndex > 0)
+             .sort((a, b) => a.tabIndex - b.tabIndex);
+            const idx = focusable.indexOf(document.activeElement);
+            if (idx !== -1 && idx < focusable.length - 1) {
+                const next = focusable[idx + 1];
+                next.focus();
+                if (next.select) next.select();
+            }
+        }
+    });
+
+    // ── Guardar (online o offline) ─────────────────────────────────────────────
+    let _enviando = false;
+
+    function recolectarDatos(tienda, fecha, usuario) {
+        const fecha_reg = (() => {
+            const n = new Date();
+            return String(n.getDate()).padStart(2,'0') + '/' +
+                   String(n.getMonth()+1).padStart(2,'0') + '/' +
+                   n.getFullYear() + ' ' +
+                   String(n.getHours()).padStart(2,'0') + ':' +
+                   String(n.getMinutes()).padStart(2,'0');
+        })();
+
+        const productos   = [...document.querySelectorAll('input[name="producto[]"]')].map(i => i.value);
+        const inventarios = [...document.querySelectorAll('input[name="inventario[]"]')].map(i => parseInt(i.value)||0);
+        const mermas      = [...document.querySelectorAll('input[name="merma[]"]')].map(i => parseInt(i.value)||0);
+        const razones     = [...document.querySelectorAll('select[name="razon[]"]')].map(s => s.value);
+
+        const filas_detalle = [];
+        for (let i = 0; i < productos.length; i++) {
+            if (!productos[i].trim()) continue;
+            if (inventarios[i] > 0 || mermas[i] > 0) {
+                filas_detalle.push([
+                    fecha_reg, tienda, fecha, usuario,
+                    productos[i], inventarios[i], mermas[i], razones[i] || ''
+                ]);
+            }
+        }
+
+        const cf_productos   = [...document.querySelectorAll('input[name="cf_producto[]"]')].map(i => i.value);
+        const cf_existencias = [...document.querySelectorAll('input[name="cf_existencia[]"]')].map(i => parseInt(i.value)||0);
+
+        const filas_cf = [];
+        for (let i = 0; i < cf_productos.length; i++) {
+            if (cf_existencias[i] > 0) {
+                filas_cf.push([
+                    fecha_reg, tienda, fecha, usuario,
+                    cf_productos[i], cf_existencias[i]
+                ]);
+            }
+        }
+
+        return { fecha_reg, filas_detalle, filas_cf };
+    }
+
+    function limpiarFormulario() {
+        document.querySelectorAll('input[name="inventario[]"], input[name="merma[]"], input[name="cf_existencia[]"]')
+            .forEach(i => i.value = '');
+        document.querySelectorAll('select[name="razon[]"]')
+            .forEach(s => s.value = '');
+    }
+
+    async function guardar() {
+        if (_enviando) return;
+
+        const tienda  = document.getElementById('tiendaSelect').value;
+        const usuario = document.getElementById('usuarioInput').value;
+        const fecha   = document.getElementById('fechaInput').value.trim();
+
+        if (!tienda)  { alert('Selecciona una tienda.'); return; }
+        if (!usuario) { alert('Selecciona el usuario.'); document.getElementById('usuarioInput').focus(); return; }
+        if (!fecha)   { alert('Ingresa la fecha.'); document.getElementById('fechaInput').focus(); return; }
+
+        _enviando = true;
+        const btn = document.getElementById('btnGuardar');
+        btn.disabled    = true;
+        btn.textContent = 'Verificando…';
+
+        try {
+            // Verificar conectividad: internet Y servidor disponible
+            const { internet, serverUp } = await offlineApp.checkConectividad();
+
+            if (serverUp) {
+                // ── Servidor accesible: envío normal ──────────────────────
+                btn.textContent = 'Guardando…';
+                document.getElementById('mainForm').submit();
+                // No restablecer _enviando: la página recargará sola
+
+            } else if (internet && !serverUp) {
+                // ── Hay internet pero el servidor está despertando (Render)
+                // Guardar en IndexedDB y mostrar mensaje especial
+                btn.textContent = 'Guardando…';
+                const { fecha_reg, filas_detalle, filas_cf } = recolectarDatos(tienda, fecha, usuario);
+
+                if (!filas_detalle.length && !filas_cf.length) {
+                    offlineApp.mostrarToast('⚠️ No hay datos para guardar.', 'error');
+                    _enviando = false;
+                    btn.disabled    = false;
+                    btn.textContent = 'Guardar';
+                    return;
+                }
+
+                await offlineApp.guardarPendiente({ tipo: 'form', tienda, fecha, usuario, fecha_reg, filas_detalle, filas_cf });
+                const total = await offlineApp.contarPendientes();
+                offlineApp.mostrarToast(`⏳ Guardado (${total} pendiente${total !== 1 ? 's' : ''}, servidor iniciando…)`, 'info');
+                offlineApp.actualizarBannerOffline();
+
+                limpiarFormulario();
+                _enviando = false;
+                btn.disabled    = false;
+                btn.textContent = 'Guardar';
+
+                // Intentar sincronizar en segundo plano cuando el servidor despierte
+                setTimeout(async () => {
+                    const n = await offlineApp.syncPendientes();
+                    if (n > 0) {
+                        offlineApp.mostrarToast(`✅ ${n} registro${n !== 1 ? 's' : ''} sincronizado${n !== 1 ? 's' : ''} con SharePoint`);
+                        offlineApp.actualizarBannerOffline();
+                    }
+                }, 20000);  // Esperar 20s para que Render despierte
+
+            } else {
+                // ── SIN INTERNET: guardar en IndexedDB ─────────────────────
+                btn.textContent = 'Guardando…';
+                const { fecha_reg, filas_detalle, filas_cf } = recolectarDatos(tienda, fecha, usuario);
+
+                if (!filas_detalle.length && !filas_cf.length) {
+                    offlineApp.mostrarToast('⚠️ No hay datos para guardar.', 'error');
+                    _enviando = false;
+                    btn.disabled    = false;
+                    btn.textContent = 'Guardar';
+                    return;
+                }
+
+                await offlineApp.guardarPendiente({ tipo: 'form', tienda, fecha, usuario, fecha_reg, filas_detalle, filas_cf });
+                const total = await offlineApp.contarPendientes();
+                offlineApp.mostrarToast(`📵 Guardado sin conexión (${total} pendiente${total !== 1 ? 's' : ''})`);
+                offlineApp.actualizarBannerOffline();
+
+                limpiarFormulario();
+                _enviando = false;
+                btn.disabled    = false;
+                btn.textContent = 'Guardar';
+            }
+        } catch (err) {
+            console.error('[Guardar] Error:', err);
+            offlineApp.mostrarToast('Error inesperado al guardar.', 'error');
+            _enviando = false;
+            btn.disabled    = false;
+            btn.textContent = 'Guardar';
+        }
+    }
+
+    // ── Cancelar ───────────────────────────────────────────────────────────────
+    function cancelar() {
+        if (confirm('¿Descartar los cambios?')) {
+            document.querySelectorAll('input[name="inventario[]"], input[name="merma[]"], input[name="cf_existencia[]"]')
+                .forEach(i => i.value = '');
+            document.querySelectorAll('select[name="razon[]"]')
+                .forEach(s => s.value = '');
+        }
+    }
+
+    // ── Mensaje de éxito tras envío online ────────────────────────────────────
+    if (window.location.search.includes('success=1')) {
+        offlineApp.mostrarToast('✅ ¡Registro enviado a SharePoint!');
+        window.history.replaceState(null, null, window.location.pathname);
+    }
+
+    // ── Registrar Service Worker ───────────────────────────────────────────────
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            .then(reg => console.log('[SW] Registrado con scope raiz:', reg.scope))
+            .catch(err => console.warn('[SW] Error al registrar:', err));
+    }
+
+    // ── Estado inicial del banner ──────────────────────────────────────────────
+    offlineApp.actualizarBannerOffline();
+</script>
+</body>
+</html>

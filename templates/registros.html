@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registros</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            background: #f0f2f5;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0; padding: 0;
+        }
+
+        .phone-wrapper {
+            width: 100%; max-width: 480px; min-height: 100vh;
+            background: #fff; display: flex; flex-direction: column;
+        }
+
+        .app-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 13px 14px; border-bottom: 1px solid #e8eaed;
+            position: sticky; top: 0; background: #fff; z-index: 10;
+        }
+
+        .app-header h5 { color: #1a73e8; font-size: 16px; font-weight: 700; margin: 0; }
+
+        .btn-nuevo {
+            background: #1a73e8; color: #fff; border: none;
+            border-radius: 6px; padding: 7px 13px; font-size: 13px;
+            font-weight: 600; text-decoration: none;
+        }
+
+        /* Banner offline */
+        #offlineBanner { display: none; }
+
+        /* Tabs */
+        .tabs {
+            display: flex; border-bottom: 1px solid #e8eaed;
+            position: sticky; top: 45px; background: #fff; z-index: 9;
+        }
+
+        .tab {
+            flex: 1; text-align: center; padding: 10px 4px;
+            font-size: 13px; font-weight: 600; color: #5f6368;
+            cursor: pointer; border-bottom: 3px solid transparent;
+            transition: all 0.15s;
+        }
+
+        .tab.active    { color: #1a73e8; border-bottom-color: #1a73e8; }
+        .tab.active-cf { color: #0d9488; border-bottom-color: #0d9488; }
+
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* Lista */
+        .lista { padding: 8px 10px 20px; display: flex; flex-direction: column; gap: 5px; }
+
+        .empty-state { text-align: center; color: #9aa0a6; margin-top: 50px; font-size: 13px; }
+
+        /* Sección pendientes offline */
+        .seccion-pendientes {
+            padding: 8px 10px 0;
+        }
+        .seccion-pendientes-title {
+            font-size: 12px; font-weight: 700; color: #856404;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            margin-bottom: 6px; padding-bottom: 4px;
+            border-bottom: 1px solid #ffc107;
+        }
+
+        /* Fila merma */
+        .row-reg {
+            border: 1px solid #e8eaed; border-radius: 8px;
+            padding: 8px 10px; background: #fff;
+        }
+
+        .row-reg.pendiente {
+            border-color: #ffc107;
+            background: #fffdf0;
+        }
+
+        .row-line1 {
+            display: flex; justify-content: space-between;
+            align-items: baseline; margin-bottom: 2px;
+        }
+
+        .row-tienda { font-weight: 700; font-size: 12px; color: #1a73e8; }
+        .row-fecha  { font-size: 11px; color: #9aa0a6; }
+
+        .row-producto { font-size: 13px; font-weight: 600; color: #202124; margin-bottom: 3px; }
+
+        .row-nums { display: flex; gap: 10px; margin-bottom: 2px; }
+        .num-badge { font-size: 12px; color: #5f6368; }
+        .num-badge b { color: #202124; }
+
+        .row-razon { font-size: 11px; color: #5f6368; margin-bottom: 2px; }
+
+        .row-bottom {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-top: 4px;
+        }
+
+        .row-meta { font-size: 10px; color: #bdc1c6; }
+
+        .row-actions { display: flex; gap: 6px; }
+
+        .btn-editar {
+            border: 1px solid #1a73e8; background: #fff; color: #1a73e8;
+            border-radius: 5px; padding: 3px 10px; font-size: 12px;
+            font-weight: 600; cursor: pointer; text-decoration: none;
+        }
+
+        .btn-borrar {
+            border: 1px solid #d93025; background: #fff; color: #d93025;
+            border-radius: 5px; padding: 3px 10px; font-size: 12px;
+            font-weight: 600; cursor: pointer;
+        }
+
+        /* Fila cuarto frío */
+        .row-cf {
+            border: 1px solid #99f6e4; border-radius: 8px;
+            padding: 8px 10px; background: #f0fdfa;
+        }
+
+        .row-cf.pendiente {
+            border-color: #ffc107;
+            background: #fffdf0;
+        }
+
+        .row-cf .row-tienda { color: #0d9488; }
+        .row-cf .num-badge b { color: #0d9488; }
+
+        .btn-borrar-cf {
+            border: 1px solid #d93025; background: #f0fdfa; color: #d93025;
+            border-radius: 5px; padding: 3px 10px; font-size: 12px;
+            font-weight: 600; cursor: pointer;
+        }
+
+        /* Badge pendiente */
+        .badge-pendiente-pill {
+            display: inline-flex; align-items: center; gap: 4px;
+            background: #fff3cd; color: #856404; border: 1px solid #ffc107;
+            border-radius: 10px; padding: 2px 8px; font-size: 11px; font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        /* Botón sincronizar manual */
+        .btn-sync {
+            width: calc(100% - 20px); margin: 8px 10px 4px;
+            background: #1a73e8; color: #fff; border: none;
+            border-radius: 8px; padding: 10px; font-size: 14px;
+            font-weight: 600; cursor: pointer; display: none;
+        }
+        .btn-sync:hover { background: #1557b0; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.45); z-index: 100;
+            justify-content: center; align-items: center;
+        }
+        .modal-overlay.active { display: flex; }
+
+        .modal-box {
+            background: #fff; border-radius: 12px; padding: 20px 18px;
+            width: 290px; max-width: 90vw;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+        }
+
+        .modal-box h6 { font-weight: 700; font-size: 15px; color: #202124; margin-bottom: 4px; }
+        .modal-box p  { font-size: 12px; color: #5f6368; margin-bottom: 12px; }
+
+        .modal-box input {
+            width: 100%; border: 1.5px solid #dadce0; border-radius: 6px;
+            padding: 8px 12px; font-size: 14px; color: #202124; outline: none; margin-bottom: 8px;
+        }
+        .modal-box input:focus { border-color: #d93025; }
+
+        .modal-error { color: #d93025; font-size: 12px; margin-bottom: 8px; display: none; }
+
+        .modal-actions { display: flex; gap: 8px; }
+
+        .modal-btn-cancel {
+            flex: 1; border: 1.5px solid #dadce0; background: #fff;
+            color: #202124; border-radius: 6px; padding: 8px; font-size: 13px; cursor: pointer;
+        }
+
+        .modal-btn-confirm {
+            flex: 1; background: #d93025; color: #fff; border: none;
+            border-radius: 6px; padding: 8px; font-size: 13px; font-weight: 700; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<div class="phone-wrapper">
+
+    <div class="app-header">
+        <h5>Registros</h5>
+        <a href="/" class="btn-nuevo">+ Nuevo</a>
+    </div>
+
+    <!-- Banner de estado online/offline -->
+    <div id="offlineBanner" class="offline-banner"></div>
+
+    <!-- Botón sincronizar manual -->
+    <button id="btnSyncManual" class="btn-sync" onclick="sincronizarManual()">
+        🔄 Sincronizar pendientes con SharePoint
+    </button>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <div class="tab active" id="tab-merma" onclick="switchTab('merma')">Merma / Inventario</div>
+        <div class="tab" id="tab-cf" onclick="switchTab('cf')">❄️ Cuarto Frío</div>
+    </div>
+
+    <!-- Panel merma -->
+    <div class="tab-panel active" id="panel-merma">
+
+        <!-- Registros pendientes offline (se insertan por JS) -->
+        <div id="pendientes-merma"></div>
+
+        <div class="lista" id="lista-merma-sp">
+            {% if not registros %}
+            <div class="empty-state" id="empty-merma">No hay registros aún.</div>
+            {% endif %}
+
+            {% for r in registros %}
+            {# id(0) tienda(1) fecha(2) usuario(3) producto(4) inv(5) merma(6) razon(7) fecha_mod(8) #}
+            <div class="row-reg">
+                <div class="row-line1">
+                    <span class="row-tienda">{{ r[1] }}</span>
+                    <span class="row-fecha">{{ r[2] }}</span>
+                </div>
+                <div class="row-producto">{{ r[4] }}</div>
+                <div class="row-nums">
+                    <span class="num-badge">Inv: <b>{{ r[5] }}</b></span>
+                    <span class="num-badge">Merma: <b>{{ r[6] }}</b></span>
+                </div>
+                {% if r[7] %}<div class="row-razon">Razón: {{ r[7] }}</div>{% endif %}
+                <div class="row-bottom">
+                    <div class="row-meta">
+                        {{ r[3] }}{% if r[8] %} · Mod: {{ r[8] }}{% endif %}
+                    </div>
+                    <div class="row-actions">
+                        <a href="/editar/{{ r[0] }}" class="btn-editar">Editar</a>
+                        <button class="btn-borrar" onclick="pedirPassword({{ r[0] }}, 'merma')">Borrar</button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Panel cuarto frío -->
+    <div class="tab-panel" id="panel-cf">
+
+        <!-- Registros pendientes CF offline (se insertan por JS) -->
+        <div id="pendientes-cf"></div>
+
+        <div class="lista" id="lista-cf-sp">
+            {% if not cf_registros %}
+            <div class="empty-state" id="empty-cf">No hay registros de cuarto frío.</div>
+            {% endif %}
+
+            {% for r in cf_registros %}
+            {# id(0) tienda(1) fecha(2) usuario(3) producto(4) existencia(5) fecha_mod(6) #}
+            <div class="row-cf">
+                <div class="row-line1">
+                    <span class="row-tienda">{{ r[1] }}</span>
+                    <span class="row-fecha">{{ r[2] }}</span>
+                </div>
+                <div class="row-producto">{{ r[4] }}</div>
+                <div class="row-nums">
+                    <span class="num-badge">Existencia: <b>{{ r[5] }}</b></span>
+                </div>
+                <div class="row-bottom">
+                    <div class="row-meta">
+                        {{ r[3] }}{% if r[6] %} · Mod: {{ r[6] }}{% endif %}
+                    </div>
+                    <div class="row-actions">
+                        <button class="btn-borrar-cf" onclick="pedirPassword({{ r[0] }}, 'cf')">Borrar</button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal contraseña -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-box">
+        <h6>Confirmar eliminación</h6>
+        <p>Ingresa la contraseña para borrar este registro.</p>
+        <input type="password" id="passInput" placeholder="Contraseña" autocomplete="off">
+        <div class="modal-error" id="modalError">Contraseña incorrecta.</div>
+        <div class="modal-actions">
+            <button class="modal-btn-cancel" onclick="cerrarModal()">Cancelar</button>
+            <button class="modal-btn-confirm" onclick="confirmarBorrar()">Borrar</button>
+        </div>
+    </div>
+</div>
+
+<script src="/static/offline.js"></script>
+<script>
+    // ── Tabs ───────────────────────────────────────────────────────────────────
+    let tabActual = 'merma';
+
+    function switchTab(tab) {
+        tabActual = tab;
+        document.getElementById('panel-merma').classList.toggle('active', tab === 'merma');
+        document.getElementById('panel-cf').classList.toggle('active', tab === 'cf');
+        document.getElementById('tab-merma').className = 'tab' + (tab === 'merma' ? ' active' : '');
+        document.getElementById('tab-cf').className    = 'tab' + (tab === 'cf' ? ' active-cf' : '');
+    }
+
+    // ── Modal borrar ───────────────────────────────────────────────────────────
+    let idABorrar   = null;
+    let tipoABorrar = null;
+
+    function pedirPassword(id, tipo) {
+        idABorrar   = id;
+        tipoABorrar = tipo;
+        document.getElementById('passInput').value = '';
+        document.getElementById('modalError').style.display = 'none';
+        document.getElementById('modalOverlay').classList.add('active');
+        setTimeout(() => document.getElementById('passInput').focus(), 100);
+    }
+
+    function cerrarModal() {
+        idABorrar = tipoABorrar = null;
+        document.getElementById('modalOverlay').classList.remove('active');
+    }
+
+    async function confirmarBorrar() {
+        const pass  = document.getElementById('passInput').value;
+        const errEl = document.getElementById('modalError');
+        errEl.style.display = 'none';
+
+        const ruta = tipoABorrar === 'cf' ? `/borrar_cf/${idABorrar}` : `/borrar/${idABorrar}`;
+        const fd   = new FormData();
+        fd.append('password', pass);
+
+        try {
+            const res = await fetch(ruta, { method: 'POST', body: fd });
+            if (res.ok) { cerrarModal(); location.reload(); }
+            else { errEl.style.display = 'block'; document.getElementById('passInput').focus(); }
+        } catch(e) {
+            errEl.textContent = 'Error de red.';
+            errEl.style.display = 'block';
+        }
+    }
+
+    document.getElementById('passInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter') confirmarBorrar();
+    });
+
+    document.getElementById('modalOverlay').addEventListener('click', function(e) {
+        if (e.target === this) cerrarModal();
+    });
+
+    // ── Pendientes offline ─────────────────────────────────────────────────────
+
+    function formatFecha(fechaReg) {
+        // fechaReg: "17/06/2025 08:30"
+        if (!fechaReg) return '';
+        return fechaReg.length > 11 ? fechaReg.slice(0, 10) : fechaReg;
+    }
+
+    async function mostrarPendientesOffline() {
+        const pendientes = await offlineApp.leerPendientes();
+
+        const contMerma = document.getElementById('pendientes-merma');
+        const contCF    = document.getElementById('pendientes-cf');
+        contMerma.innerHTML = '';
+        contCF.innerHTML    = '';
+
+        let hayMerma = false;
+        let hayCF    = false;
+
+        for (const p of pendientes) {
+            const filas_d = p.filas_detalle || [];
+            const filas_c = p.filas_cf || [];
+
+            // Filas de merma/inventario
+            for (const fila of filas_d) {
+                // fila: [fecha_reg, tienda, fecha, usuario, producto, inv, merma, razon]
+                const [fecha_reg, tienda, fecha, usuario, producto, inv, merma, razon] = fila;
+                if (!hayMerma) {
+                    hayMerma = true;
+                    contMerma.innerHTML = `
+                        <div class="seccion-pendientes">
+                            <div class="seccion-pendientes-title">⏳ Pendientes sin sincronizar</div>
+                        </div>
+                        <div class="lista" id="lista-pendientes-merma"></div>`;
+                }
+                const lista = document.getElementById('lista-pendientes-merma') || contMerma;
+                const div = document.createElement('div');
+                div.className = 'row-reg pendiente';
+                div.innerHTML = `
+                    <div class="badge-pendiente-pill">⏳ Sin conexión</div>
+                    <div class="row-line1">
+                        <span class="row-tienda">${tienda}</span>
+                        <span class="row-fecha">${fecha}</span>
+                    </div>
+                    <div class="row-producto">${producto}</div>
+                    <div class="row-nums">
+                        <span class="num-badge">Inv: <b>${inv}</b></span>
+                        <span class="num-badge">Merma: <b>${merma}</b></span>
+                    </div>
+                    ${razon ? `<div class="row-razon">Razón: ${razon}</div>` : ''}
+                    <div class="row-bottom">
+                        <div class="row-meta">${usuario} · ${formatFecha(fecha_reg)}</div>
+                    </div>`;
+                lista.appendChild(div);
+            }
+
+            // Filas de Cuarto Frío
+            for (const fila of filas_c) {
+                // fila: [fecha_reg, tienda, fecha, usuario, producto, existencia]
+                const [fecha_reg, tienda, fecha, usuario, producto, existencia] = fila;
+                if (!hayCF) {
+                    hayCF = true;
+                    contCF.innerHTML = `
+                        <div class="seccion-pendientes">
+                            <div class="seccion-pendientes-title">⏳ Pendientes sin sincronizar</div>
+                        </div>
+                        <div class="lista" id="lista-pendientes-cf"></div>`;
+                }
+                const lista = document.getElementById('lista-pendientes-cf') || contCF;
+                const div = document.createElement('div');
+                div.className = 'row-cf pendiente';
+                div.innerHTML = `
+                    <div class="badge-pendiente-pill">⏳ Sin conexión</div>
+                    <div class="row-line1">
+                        <span class="row-tienda">${tienda}</span>
+                        <span class="row-fecha">${fecha}</span>
+                    </div>
+                    <div class="row-producto">${producto}</div>
+                    <div class="row-nums">
+                        <span class="num-badge">Existencia: <b>${existencia}</b></span>
+                    </div>
+                    <div class="row-bottom">
+                        <div class="row-meta">${usuario} · ${formatFecha(fecha_reg)}</div>
+                    </div>`;
+                lista.appendChild(div);
+            }
+        }
+
+        // Mostrar botón de sync manual si hay pendientes y hay internet
+        const btnSync = document.getElementById('btnSyncManual');
+        const total   = await offlineApp.contarPendientes();
+        if (total > 0) {
+            const online = await offlineApp.isOnline();
+            btnSync.style.display = online ? 'block' : 'none';
+            btnSync.textContent   = `🔄 Sincronizar ${total} pendiente${total !== 1 ? 's' : ''} con SharePoint`;
+        } else {
+            btnSync.style.display = 'none';
+        }
+    }
+
+    async function sincronizarManual() {
+        const btn = document.getElementById('btnSyncManual');
+        btn.disabled    = true;
+        btn.textContent = '🔄 Sincronizando…';
+
+        const n = await offlineApp.syncPendientes();
+        if (n > 0) {
+            offlineApp.mostrarToast(`✅ ${n} registro${n !== 1 ? 's' : ''} sincronizado${n !== 1 ? 's' : ''} con SharePoint`);
+            await mostrarPendientesOffline();
+            offlineApp.actualizarBannerOffline();
+        } else {
+            offlineApp.mostrarToast('⚠️ No se pudo sincronizar. Verifica la conexión.', 'error');
+        }
+
+        btn.disabled = false;
+    }
+
+    // ── Service Worker ─────────────────────────────────────────────────────────
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/static/service-worker.js');
+    }
+
+    // ── Al cargar la página ────────────────────────────────────────────────────
+    offlineApp.actualizarBannerOffline();
+    mostrarPendientesOffline();
+
+    // Re-intentar sync al recuperar conexión
+    window.addEventListener('online', async () => {
+        const n = await offlineApp.syncPendientes();
+        if (n > 0) {
+            offlineApp.mostrarToast(`✅ ${n} registro${n !== 1 ? 's' : ''} sincronizado${n !== 1 ? 's' : ''} con SharePoint`);
+            // Recargar para mostrar datos actualizados de SharePoint
+            setTimeout(() => location.reload(), 1500);
+        }
+        offlineApp.actualizarBannerOffline();
+        mostrarPendientesOffline();
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gastos — Pacífica Farms</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="manifest" href="/static/manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            background: #f0f2f5;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0; padding: 0;
+        }
+
+        .phone-wrapper {
+            width: 100%;
+            max-width: 480px;
+            min-height: 100vh;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Header ── */
+        .app-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 16px 14px;
+            border-bottom: 1px solid #e8eaed;
+            background: #fff;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .back-arrow {
+            color: #e67e22;
+            font-size: 22px;
+            text-decoration: none;
+            line-height: 1;
+        }
+
+        .header-title { flex: 1; }
+
+        .header-title h5 {
+            color: #e67e22;
+            font-size: 17px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .header-title small {
+            font-size: 11px;
+            color: #9ca3af;
+            font-weight: 500;
+        }
+
+        /* ── OCR status chip ── */
+        .ocr-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+        .ocr-chip.loading { background: #e8eaf6; color: #3949ab; }
+        .ocr-chip.found   { background: #e6f4ea; color: #1e7e34; }
+        .ocr-chip.miss    { background: #fff3cd; color: #856404; }
+
+        /* ── Banner offline ── */
+        #offlineBanner { display: none; }
+
+        /* ── Formulario ── */
+        .form-body { padding: 16px; flex: 1; }
+
+        .field-label {
+            font-weight: 600;
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 6px;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .styled-select {
+            width: 100%;
+            appearance: none;
+            -webkit-appearance: none;
+            border: 1.5px solid #dadce0;
+            border-radius: 10px;
+            padding: 11px 36px 11px 14px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #202124;
+            background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235f6368' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 14px center;
+            outline: none;
+            cursor: pointer;
+            margin-bottom: 14px;
+        }
+        .styled-select:focus { border-color: #e67e22; }
+
+        .field-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .field-row-label {
+            font-weight: 600;
+            font-size: 13px;
+            color: #6b7280;
+            min-width: 60px;
+            text-transform: uppercase;
+        }
+
+        .field-row input {
+            flex: 1;
+            border: 1.5px solid #dadce0;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 14px;
+            color: #202124;
+            outline: none;
+            font-family: inherit;
+        }
+        .field-row input:focus { border-color: #e67e22; }
+
+        /* ── Secciones de categoría ── */
+        .cat-section {
+            margin-bottom: 14px;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 2px solid transparent;
+        }
+
+        .cat-section.casetas { border-color: #3b82f6; }
+        .cat-section.comida  { border-color: #f59e0b; }
+        .cat-section.otros   { border-color: #6b7280; }
+
+        .cat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 13px 16px;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .cat-section.casetas .cat-header { background: #eff6ff; }
+        .cat-section.comida  .cat-header { background: #fffbeb; }
+        .cat-section.otros   .cat-header { background: #f9fafb; }
+
+        .cat-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .cat-icon { font-size: 22px; }
+
+        .cat-title {
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .cat-section.casetas .cat-title { color: #1d4ed8; }
+        .cat-section.comida  .cat-title { color: #b45309; }
+        .cat-section.otros   .cat-title { color: #374151; }
+
+        .cat-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 20px;
+            color: #fff;
+            display: none;
+        }
+
+        .cat-section.casetas .cat-badge { background: #3b82f6; }
+        .cat-section.comida  .cat-badge { background: #f59e0b; }
+        .cat-section.otros   .cat-badge { background: #6b7280; }
+
+        .cat-arrow {
+            font-size: 13px;
+            transition: transform 0.2s;
+        }
+        .cat-section.casetas .cat-arrow { color: #3b82f6; }
+        .cat-section.comida  .cat-arrow { color: #f59e0b; }
+        .cat-section.otros   .cat-arrow { color: #6b7280; }
+        .cat-arrow.open { transform: rotate(180deg); }
+
+        .cat-body {
+            display: none;
+            padding: 14px 14px 16px;
+        }
+
+        .cat-section.casetas .cat-body { background: #f8fbff; }
+        .cat-section.comida  .cat-body { background: #fffef5; }
+        .cat-section.otros   .cat-body { background: #fafafa; }
+
+        .cat-body.open { display: block; }
+
+        /* ── Fotos ── */
+        .fotos-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .foto-thumb {
+            position: relative;
+            width: 86px;
+            height: 86px;
+            border-radius: 10px;
+            overflow: hidden;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.14);
+            cursor: pointer;
+        }
+
+        .foto-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* OCR spinner overlay sobre la miniatura */
+        .foto-thumb .ocr-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 600;
+            gap: 4px;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2.5px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .foto-del {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(220,38,38,0.85);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+
+        /* ── Botón foto ── */
+        .btn-foto {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 13px;
+            border-radius: 10px;
+            border: 2px dashed;
+            background: transparent;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.15s;
+            -webkit-tap-highlight-color: transparent;
+            font-family: inherit;
+        }
+
+        .btn-foto:active { opacity: 0.7; }
+
+        .cat-section.casetas .btn-foto { border-color: #93c5fd; color: #1d4ed8; }
+        .cat-section.comida  .btn-foto { border-color: #fcd34d; color: #b45309; }
+        .cat-section.otros   .btn-foto { border-color: #d1d5db; color: #374151; }
+
+        /* ── Área de monto con OCR ── */
+        .monto-area {
+            margin-top: 12px;
+            background: #fff;
+            border-radius: 10px;
+            padding: 10px 12px;
+            border: 1.5px solid #e5e7eb;
+        }
+
+        .monto-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .monto-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .ocr-status { /* chip aquí */ }
+
+        .monto-input-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .monto-prefix {
+            font-size: 18px;
+            font-weight: 700;
+            color: #374151;
+        }
+
+        .monto-input {
+            flex: 1;
+            border: none;
+            border-bottom: 2px solid #dadce0;
+            border-radius: 0;
+            padding: 4px 4px 6px;
+            font-size: 22px;
+            font-weight: 700;
+            color: #202124;
+            outline: none;
+            font-family: inherit;
+            background: transparent;
+            transition: border-color 0.2s;
+            -moz-appearance: textfield;
+        }
+        .monto-input::-webkit-outer-spin-button,
+        .monto-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+        .monto-input:focus { border-bottom-color: #e67e22; }
+        .monto-input.ocr-detected { border-bottom-color: #1e7e34; color: #1a5c2a; }
+
+        .monto-hint {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 4px;
+        }
+        .monto-hint.detected { color: #1e7e34; }
+
+        /* ── Botón Guardar ── */
+        .bottom-bar {
+            display: flex;
+            gap: 12px;
+            padding: 16px;
+            border-top: 1px solid #e8eaed;
+            background: #fff;
+            position: sticky;
+            bottom: 0;
+        }
+
+        .btn-cancelar {
+            flex: 1;
+            border: 1.5px solid #dadce0;
+            background: #fff;
+            color: #202124;
+            border-radius: 10px;
+            padding: 13px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .btn-guardar {
+            flex: 2;
+            background: linear-gradient(135deg, #e67e22, #c0392b);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 13px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            box-shadow: 0 4px 14px rgba(230,126,34,0.35);
+            transition: opacity 0.15s;
+        }
+
+        .btn-guardar:disabled { opacity: 0.6; }
+        .btn-guardar:active   { opacity: 0.8; }
+
+        .file-input { display: none; }
+
+        /* ── Modal ampliación foto ── */
+        .foto-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .foto-modal.open { display: flex; }
+        .foto-modal img  { max-width: 95vw; max-height: 90vh; border-radius: 8px; }
+        .foto-modal-close {
+            position: absolute;
+            top: 16px; right: 16px;
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 36px; height: 36px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        /* ── Highlighter Modal ── */
+        #highlighterModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #000;
+            z-index: 2000;
+            flex-direction: column;
+        }
+        #highlighterModal.active { display: flex; }
+        .cropper-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #111;
+            color: #fff;
+        }
+        .cropper-title { font-size: 16px; font-weight: 600; margin: 0; }
+        .cropper-btn {
+            background: none; border: none; color: #10b981; font-size: 16px; font-weight: 600; cursor: pointer;
+        }
+        .highlighter-container {
+            flex: 1;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #222;
+        }
+        #hlImage {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+            user-select: none;
+            display: block;
+        }
+        #hlCanvas {
+            position: absolute;
+            cursor: crosshair;
+            mix-blend-mode: multiply; /* MAGIA: Hace que la tinta negra resalte y el fondo se pinte */
+        }
+        .cropper-instructions {
+            padding: 15px; text-align: center; background: #111; color: #9ca3af; font-size: 14px; border-bottom: 1px solid #333;
+        }
+        .ocr-candidates {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .candidate-chip {
+            background: #ecfdf5;
+            color: #059669;
+            border: 1px solid #10b981;
+            border-radius: 16px;
+            padding: 4px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .candidate-chip:active {
+            background: #10b981;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+<div class="phone-wrapper">
+
+    <!-- Header -->
+    <div class="app-header">
+        <a href="/" class="back-arrow">←</a>
+        <div class="header-title">
+            <h5>🧾 Registro de Gastos</h5>
+            <small>La app detecta el total automáticamente</small>
+        </div>
+    </div>
+
+    <!-- Banner offline -->
+    <div id="offlineBanner" class="offline-banner"></div>
+
+    <!-- Formulario -->
+    <div class="form-body" id="formBody">
+
+        <span class="field-label">Ruta</span>
+        <select class="styled-select" id="tiendaSelect">
+            <option value="" disabled selected>Selecciona una ruta…</option>
+            <option>MXL</option>
+            <option>Ruta 2000</option>
+            <option>Rutas Playas</option>
+            <option>ENS</option>
+        </select>
+
+        <span class="field-label">Usuario</span>
+        <select class="styled-select" id="usuarioSelect">
+            <option value="" disabled selected>Selecciona usuario…</option>
+            <option>Mizael</option>
+            <option>Esteban</option>
+            <option>Victor</option>
+        </select>
+
+        <div class="field-row">
+            <span class="field-row-label">Fecha</span>
+            <input type="date" id="fechaInput">
+        </div>
+
+        <!-- ── CASETAS ── -->
+        <div class="cat-section casetas" id="sec-casetas">
+            <div class="cat-header" onclick="toggleCat('casetas')">
+                <div class="cat-header-left">
+                    <span class="cat-icon">🛣️</span>
+                    <span class="cat-title">CASETAS</span>
+                    <span class="cat-badge" id="badge-casetas"></span>
+                </div>
+                <span class="cat-arrow" id="arrow-casetas">▼</span>
+            </div>
+            <div class="cat-body" id="body-casetas">
+                <div class="fotos-grid" id="grid-casetas"></div>
+                <button class="btn-foto" onclick="tomarFoto('casetas')">
+                    📷 Agregar foto de ticket
+                </button>
+                <div class="monto-area" style="margin-top: 10px; padding: 12px;">
+                    <div class="monto-header" style="margin-bottom: 8px;">
+                        <span class="monto-title">Gasto adicional sin ticket</span>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: flex-start;">
+                        <textarea class="monto-input" id="comentario-casetas" placeholder="Motivo o detalle..." style="font-size: 14px; font-weight: 400; padding: 10px; flex: 1; height: 46px; border: 1.5px solid #dadce0; border-radius: 10px; resize: none;"></textarea>
+                        
+                        <div style="width: 100px;">
+                            <div class="monto-input-row" style="background: #f9fafb; border: 1.5px solid #dadce0; border-radius: 10px; padding: 4px 8px; height: 46px;">
+                                <span class="monto-prefix" style="font-size: 16px;">$</span>
+                                <input class="monto-input" type="number" id="monto-extra-casetas" placeholder="0.00" min="0" step="0.01" inputmode="decimal" style="font-size: 16px; border: none; padding: 0; margin-left: 2px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── COMIDA ── -->
+        <div class="cat-section comida" id="sec-comida">
+            <div class="cat-header" onclick="toggleCat('comida')">
+                <div class="cat-header-left">
+                    <span class="cat-icon">🍽️</span>
+                    <span class="cat-title">COMIDA</span>
+                    <span class="cat-badge" id="badge-comida"></span>
+                </div>
+                <span class="cat-arrow" id="arrow-comida">▼</span>
+            </div>
+            <div class="cat-body" id="body-comida">
+                <div class="fotos-grid" id="grid-comida"></div>
+                <button class="btn-foto" onclick="tomarFoto('comida')">
+                    📷 Agregar foto de ticket
+                </button>
+                <div class="monto-area" style="margin-top: 10px; padding: 12px;">
+                    <div class="monto-header" style="margin-bottom: 8px;">
+                        <span class="monto-title">Gasto adicional sin ticket</span>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: flex-start;">
+                        <textarea class="monto-input" id="comentario-comida" placeholder="Motivo o detalle..." style="font-size: 14px; font-weight: 400; padding: 10px; flex: 1; height: 46px; border: 1.5px solid #dadce0; border-radius: 10px; resize: none;"></textarea>
+                        
+                        <div style="width: 100px;">
+                            <div class="monto-input-row" style="background: #f9fafb; border: 1.5px solid #dadce0; border-radius: 10px; padding: 4px 8px; height: 46px;">
+                                <span class="monto-prefix" style="font-size: 16px;">$</span>
+                                <input class="monto-input" type="number" id="monto-extra-comida" placeholder="0.00" min="0" step="0.01" inputmode="decimal" style="font-size: 16px; border: none; padding: 0; margin-left: 2px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── OTROS ── -->
+        <div class="cat-section otros" id="sec-otros">
+            <div class="cat-header" onclick="toggleCat('otros')">
+                <div class="cat-header-left">
+                    <span class="cat-icon">📦</span>
+                    <span class="cat-title">OTROS</span>
+                    <span class="cat-badge" id="badge-otros"></span>
+                </div>
+                <span class="cat-arrow" id="arrow-otros">▼</span>
+            </div>
+            <div class="cat-body" id="body-otros">
+                <div class="fotos-grid" id="grid-otros"></div>
+                <button class="btn-foto" onclick="tomarFoto('otros')">
+                    📷 Agregar foto de ticket
+                </button>
+                <div class="monto-area" style="margin-top: 10px; padding: 12px;">
+                    <div class="monto-header" style="margin-bottom: 8px;">
+                        <span class="monto-title">Gasto adicional sin ticket</span>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: flex-start;">
+                        <textarea class="monto-input" id="comentario-otros" placeholder="Motivo o detalle..." style="font-size: 14px; font-weight: 400; padding: 10px; flex: 1; height: 46px; border: 1.5px solid #dadce0; border-radius: 10px; resize: none;"></textarea>
+                        
+                        <div style="width: 100px;">
+                            <div class="monto-input-row" style="background: #f9fafb; border: 1.5px solid #dadce0; border-radius: 10px; padding: 4px 8px; height: 46px;">
+                                <span class="monto-prefix" style="font-size: 16px;">$</span>
+                                <input class="monto-input" type="number" id="monto-extra-otros" placeholder="0.00" min="0" step="0.01" inputmode="decimal" style="font-size: 16px; border: none; padding: 0; margin-left: 2px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Inputs de cámara ocultos -->
+    <input class="file-input" type="file" accept="image/*" capture="environment"
+        id="camara-casetas" onchange="onFoto('casetas', this)">
+    <input class="file-input" type="file" accept="image/*" capture="environment"
+        id="camara-comida"  onchange="onFoto('comida', this)">
+    <input class="file-input" type="file" accept="image/*" capture="environment"
+        id="camara-otros"   onchange="onFoto('otros', this)">
+
+    <!-- Modal para ampliar foto -->
+    <div class="foto-modal" id="fotoModal" onclick="cerrarModal()">
+        <button class="foto-modal-close">✕</button>
+        <img id="fotoModalImg" src="" alt="Ticket">
+    </div>
+
+    <!-- Barra inferior -->
+    <div class="bottom-bar">
+        <button class="btn-cancelar" onclick="cancelar()">Cancelar</button>
+        <button class="btn-guardar" id="btnGuardar" onclick="guardarGastos()">Guardar</button>
+    </div>
+
+</div>
+
+<script src="/static/offline.js"></script>
+<script>
+// ── Estado ────────────────────────────────────────────────────────────────────
+const fotos = { casetas: [], comida: [], otros: [] };
+
+// ── Fecha automática ──────────────────────────────────────────────────────────
+(function() {
+    const hoy = new Date();
+    document.getElementById('fechaInput').value =
+        hoy.getFullYear() + '-' +
+        String(hoy.getMonth()+1).padStart(2,'0') + '-' +
+        String(hoy.getDate()).padStart(2,'0');
+})();
+
+// ── OCR Removido ──────────────────────────────────────────────────────────────
+
+// ── Toggle sección ────────────────────────────────────────────────────────────
+function toggleCat(cat) {
+    document.getElementById(`body-${cat}`).classList.toggle('open');
+    document.getElementById(`arrow-${cat}`).classList.toggle('open');
+}
+
+// ── Tomar foto ────────────────────────────────────────────────────────────────
+function tomarFoto(cat) {
+    document.getElementById(`camara-${cat}`).click();
+}
+
+function onFoto(cat, input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const fullBase64 = e.target.result;
+        fotos[cat].push(fullBase64);
+        renderFotos(cat);
+        actualizarBadge(cat);
+    };
+    reader.readAsDataURL(file);
+    input.value = '';
+}
+
+// ── Renderizar miniaturas ─────────────────────────────────────────────────────
+function renderFotos(cat) {
+    const grid = document.getElementById(`grid-${cat}`);
+    grid.innerHTML = '';
+    fotos[cat].forEach((b64, idx) => {
+        const div = document.createElement('div');
+        div.className = 'foto-thumb';
+        div.innerHTML = `
+            <img src="${b64}" alt="Ticket ${idx+1}" onclick="abrirModal('${cat}', ${idx})">
+            <button class="foto-del" onclick="eliminarFoto(event,'${cat}',${idx})" title="Eliminar">✕</button>
+        `;
+        grid.appendChild(div);
+    });
+}
+
+// ── Eliminar foto ─────────────────────────────────────────────────────────────
+function eliminarFoto(ev, cat, idx) {
+    ev.stopPropagation();
+    fotos[cat].splice(idx, 1);
+    renderFotos(cat);
+    actualizarBadge(cat);
+    // Limpiar OCR status si no quedan fotos
+    if (fotos[cat].length === 0) {
+        // No hay más acciones necesarias para limpiar UI de foto si no hay OCR
+    }
+}
+
+// ── Badge ─────────────────────────────────────────────────────────────────────
+function actualizarBadge(cat) {
+    const n = fotos[cat].length;
+    const b = document.getElementById(`badge-${cat}`);
+    b.textContent     = n;
+    b.style.display   = n > 0 ? 'inline-block' : 'none';
+}
+
+// ── Modal de ampliación ───────────────────────────────────────────────────────
+function abrirModal(cat, idx) {
+    document.getElementById('fotoModalImg').src = fotos[cat][idx];
+    document.getElementById('fotoModal').classList.add('open');
+}
+function cerrarModal() {
+    document.getElementById('fotoModal').classList.remove('open');
+}
+
+// ── Guardar ───────────────────────────────────────────────────────────────────
+let _enviando = false;
+
+async function guardarGastos() {
+    if (_enviando) return;
+
+    const tienda  = document.getElementById('tiendaSelect').value;
+    const usuario = document.getElementById('usuarioSelect').value;
+    let fecha   = document.getElementById('fechaInput').value;
+
+    // Convertir de YYYY-MM-DD a DD/MM/YYYY para compatibilidad con el backend
+    if (fecha && fecha.includes('-')) {
+        const partes = fecha.split('-');
+        if (partes.length === 3) {
+            fecha = partes[2] + '/' + partes[1] + '/' + partes[0];
+        }
+    }
+
+    if (!tienda)  { alert('Selecciona una tienda.');  return; }
+    if (!usuario) { alert('Selecciona el usuario.');  return; }
+
+    const totalFotos = fotos.casetas.length + fotos.comida.length + fotos.otros.length;
+    const totalComentarios = document.getElementById('comentario-casetas').value.trim() + 
+                             document.getElementById('comentario-comida').value.trim() + 
+                             document.getElementById('comentario-otros').value.trim();
+
+    if (totalFotos === 0 && !totalComentarios) {
+        alert('Agrega al menos una foto de ticket o escribe un comentario.');
+        return;
+    }
+
+    _enviando = true;
+    const btn = document.getElementById('btnGuardar');
+    btn.disabled    = true;
+    btn.textContent = 'Verificando…';
+
+    try {
+        const fecha_reg = (() => {
+            const n = new Date();
+            return String(n.getDate()).padStart(2,'0') + '/' +
+                   String(n.getMonth()+1).padStart(2,'0') + '/' +
+                   n.getFullYear() + ' ' +
+                   String(n.getHours()).padStart(2,'0') + ':' +
+                   String(n.getMinutes()).padStart(2,'0');
+        })();
+
+        const monto_casetas = parseFloat(document.getElementById('monto-extra-casetas').value) || 0;
+        const monto_comida  = parseFloat(document.getElementById('monto-extra-comida').value)  || 0;
+        const monto_otros   = parseFloat(document.getElementById('monto-extra-otros').value)   || 0;
+
+        const comentario_casetas = document.getElementById('comentario-casetas').value.trim();
+        const comentario_comida  = document.getElementById('comentario-comida').value.trim();
+        const comentario_otros   = document.getElementById('comentario-otros').value.trim();
+
+        const payload = {
+            tipo: 'gastos',
+            tienda, usuario, fecha, fecha_reg,
+            casetas: { fotos: fotos.casetas, monto: monto_casetas, comentario: comentario_casetas },
+            comida:  { fotos: fotos.comida,  monto: monto_comida,  comentario: comentario_comida  },
+            otros:   { fotos: fotos.otros,   monto: monto_otros,   comentario: comentario_otros   }
+        };
+
+        const { internet, serverUp } = await offlineApp.checkConectividad();
+
+        if (serverUp) {
+            btn.textContent = 'Subiendo…';
+            const res = await fetch('/gastos/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pendientes: [payload] }),
+                signal: AbortSignal.timeout(60000)
+            });
+            const data = await res.json();
+            if (data.ok) {
+                offlineApp.mostrarToast(`✅ ${totalFotos} foto${totalFotos !== 1 ? 's' : ''} subida${totalFotos !== 1 ? 's' : ''} a SharePoint`);
+                limpiarFormulario();
+            } else {
+                throw new Error(data.msg || 'Error del servidor');
+            }
+
+        } else if (internet && !serverUp) {
+            await offlineApp.guardarGastoPendiente(payload);
+            const total = await offlineApp.contarGastosPendientes();
+            offlineApp.mostrarToast(`⏳ Guardado (${total} pendiente${total !== 1 ? 's' : ''}, servidor iniciando…)`, 'info');
+            offlineApp.actualizarBannerOffline();
+            limpiarFormulario();
+            setTimeout(async () => {
+                const n = await offlineApp.syncGastosPendientes();
+                if (n > 0) {
+                    offlineApp.mostrarToast(`✅ ${n} gasto${n !== 1 ? 's' : ''} sincronizado${n !== 1 ? 's' : ''} con SharePoint`);
+                    offlineApp.actualizarBannerOffline();
+                }
+            }, 20000);
+
+        } else {
+            await offlineApp.guardarGastoPendiente(payload);
+            const total = await offlineApp.contarGastosPendientes();
+            offlineApp.mostrarToast(`📵 Guardado sin conexión (${total} pendiente${total !== 1 ? 's' : ''})`);
+            offlineApp.actualizarBannerOffline();
+            limpiarFormulario();
+        }
+
+    } catch (err) {
+        console.error('[Gastos]', err);
+        offlineApp.mostrarToast('Error al guardar: ' + err.message, 'error');
+    } finally {
+        _enviando = false;
+        btn.disabled    = false;
+        btn.textContent = 'Guardar';
+    }
+}
+
+// ── Limpiar formulario ────────────────────────────────────────────────────────
+function limpiarFormulario() {
+    fotos.casetas = [];
+    fotos.comida  = [];
+    fotos.otros   = [];
+    ['casetas','comida','otros'].forEach(c => {
+        renderFotos(c);
+        actualizarBadge(c);
+        document.getElementById(`monto-extra-${c}`).value = '';
+        document.getElementById(`comentario-${c}`).value = '';
+    });
+}
+
+function cancelar() {
+    if (confirm('¿Descartar los cambios?')) limpiarFormulario();
+}
+
+// ── Banner y SW ───────────────────────────────────────────────────────────────
+offlineApp.actualizarBannerOffline();
+
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        .then(() => console.log('[SW] OK'))
+        .catch(e => console.warn('[SW] Error', e));
+}
+</script>
+</body>
+</html>

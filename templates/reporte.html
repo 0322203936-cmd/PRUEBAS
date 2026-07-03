@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Gastos — Pacífica Farms</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            background: #f0f2f5;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0; padding: 0;
+        }
+
+        .phone-wrapper {
+            width: 100%;
+            max-width: 800px;
+            min-height: 100vh;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Header ── */
+        .app-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 16px 14px;
+            border-bottom: 1px solid #e8eaed;
+            background: #fff;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .back-arrow {
+            color: #e67e22;
+            font-size: 22px;
+            text-decoration: none;
+            line-height: 1;
+        }
+
+        .header-title { flex: 1; }
+
+        .header-title h5 {
+            color: #e67e22;
+            font-size: 17px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .header-title small {
+            font-size: 11px;
+            color: #9ca3af;
+            font-weight: 500;
+        }
+
+        .filters {
+            padding: 16px;
+            background: #f9fafb;
+            border-bottom: 1px solid #e8eaed;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        
+        .filter-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .filter-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
+            margin-bottom: 4px;
+            display: block;
+            text-transform: uppercase;
+        }
+
+        .filter-input {
+            width: 100%;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 14px;
+            color: #202124;
+            outline: none;
+        }
+
+        /* ── Cards ── */
+        .gastos-list {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .gasto-card {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .gasto-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .gasto-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 2px;
+        }
+
+        .gasto-subtitle {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .gasto-monto {
+            font-size: 18px;
+            font-weight: 800;
+            color: #059669;
+            background: #d1fae5;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+        
+        .cat-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 6px;
+        }
+        .cat-badge.casetas { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .cat-badge.comida  { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+        .cat-badge.otros   { background: #f9fafb; color: #374151; border: 1px solid #e5e7eb; }
+
+        .fotos-grid {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+
+        .foto-thumb {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+            border: 1px solid #d1d5db;
+        }
+
+        /* ── Modal Highlighter & Foto ── */
+        .foto-modal {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9); z-index: 2000; align-items: center; justify-content: center;
+        }
+        .foto-modal.open { display: flex; }
+        .foto-modal img { max-width: 95%; max-height: 80vh; border-radius: 8px; }
+        .foto-modal-close {
+            position: absolute; top: 20px; right: 20px; background: none; border: none; color: white;
+            font-size: 30px; cursor: pointer;
+        }
+        .foto-monto-container {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            padding: 15px 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid #333;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            flex-wrap: wrap;
+            justify-content: center;
+            z-index: 2001;
+        }
+        #fotoMontoInput {
+            width: 90px; padding: 8px; border-radius: 6px; border: none; font-size: 16px; font-weight: 600; text-align: center;
+        }
+        .foto-monto-btn {
+            background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 14px;
+        }
+        .foto-monto-btn:active { background: #059669; }
+        #fotoMontoStatus {
+            color: #10b981; font-weight: 700; font-size: 13px; display: none; width: 100%; text-align: center; margin-top: 5px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6b7280;
+        }
+
+        /* ── Botones de categoría (reemplazan las flechitas) ── */
+        .cat-det-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1.5px solid transparent;
+            transition: opacity 0.15s, transform 0.1s;
+            font-family: inherit;
+        }
+        .cat-det-btn:active { opacity: 0.7; transform: scale(0.97); }
+        .cat-det-btn.casetas { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+        .cat-det-btn.comida  { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+        .cat-det-btn.otros   { background: #f9fafb; color: #374151; border-color: #e5e7eb; }
+        .cat-det-btn.open.casetas { background: #1d4ed8; color: #fff; }
+        .cat-det-btn.open.comida  { background: #b45309; color: #fff; }
+        .cat-det-btn.open.otros   { background: #374151; color: #fff; }
+    </style>
+</head>
+<body>
+<div class="phone-wrapper">
+
+    <!-- Header -->
+    <div class="app-header">
+        <a href="/" class="back-arrow">←</a>
+        <div class="header-title">
+            <h5>📊 Reporte de Gastos</h5>
+            <small>Historial capturado</small>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filters">
+        <div class="filter-group">
+            <span class="filter-label">Ruta</span>
+            <select class="filter-input" id="filtroTienda" onchange="filtrarGastos()">
+                <option value="ALL">Todas las rutas</option>
+                <option value="MXL">MXL</option>
+                <option value="Ruta 2000">Ruta 2000</option>
+                <option value="Rutas Playas">Rutas Playas</option>
+                <option value="ENS">ENS</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <span class="filter-label">Usuario</span>
+            <input class="filter-input" type="text" id="filtroUsuario" placeholder="Filtrar usuario..." onkeyup="filtrarGastos()">
+        </div>
+        <div class="filter-group">
+            <span class="filter-label">Fecha</span>
+            <input class="filter-input" type="date" id="filtroFecha" onchange="filtrarGastos()">
+        </div>
+    </div>
+
+    <!-- Lista de gastos -->
+    <div class="gastos-list" id="gastosContainer">
+        {% if not gastos %}
+        <div class="empty-state">
+            <h4>No hay gastos registrados</h4>
+            <p>Aún no se ha sincronizado ningún gasto con SharePoint.</p>
+        </div>
+        {% else %}
+            {% for g in gastos %}
+            {% set card_idx = loop.index0 %}
+            {% set card_num = loop.index %}
+            {% set viaticos = g.viaticos if g.viaticos is not none else (1100 if g.tienda == 'MXL' else 700) %}
+            <div class="gasto-card" data-tienda="{{ g.tienda }}" data-usuario="{{ g.usuario.lower() }}" data-fecha="{{ g.fecha }}">
+                <div class="gasto-header">
+                    <div>
+                        <!-- Botones por categoría -->
+                        <div style="display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;">
+                        {% for cat, det in g.detalles.items() %}
+                            <button class="cat-det-btn {{ cat.lower() }}" id="btn-{{ card_idx }}-{{ cat }}" onclick="switchCategoria('{{ card_idx }}', '{{ cat }}')">
+                                {% if cat == 'CASETAS' %}🛣️{% elif cat == 'COMIDA' %}🍽️{% else %}📦{% endif %}
+                                {{ cat }}
+                            </button>
+                        {% endfor %}
+                        </div>
+                        <div class="gasto-title">{{ g.tienda }}</div>
+                        <div class="gasto-subtitle">👤 {{ g.usuario }} • 📅 {{ g.fecha }}</div>
+                        <div class="gasto-subtitle" style="font-size: 11px; margin-top:2px;">Reg: {{ g.fecha_reg }}</div>
+                    </div>
+                    <div style="text-align: right;" id="display-view-{{ card_num }}">
+                        <div class="gasto-monto" style="cursor: pointer;" onclick="toggleEdit('{{ card_num }}')" id="gran-total-{{ card_num }}">${{ "{:,.2f}".format(g.monto|float) }} ✏️</div>
+                        {% if viaticos > 0 or g.viaticos is not none %}
+                            {% set restante = viaticos - g.monto|float %}
+                            <div style="font-size: 11px; color: #6b7280; margin-top: 6px; cursor: pointer;" onclick="toggleEdit('{{ card_num }}')">Viáticos: ${{ "{:,.2f}".format(viaticos) }}</div>
+                            <div style="font-size: 12px; font-weight: 700; color: {{ '#059669' if restante >= 0 else '#dc2626' }};">
+                                Restante: ${{ "{:,.2f}".format(restante) }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div style="text-align: right; display: none; background: #f9fafb; border: 1px solid #d1d5db; padding: 12px; border-radius: 8px; margin-top: 8px;" id="edit-view-{{ card_num }}">
+                        <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px; text-align: left; color: #374151;">Editar Montos:</div>
+                        
+                        <div id="edit-categorias-{{ card_num }}">
+                        {% for cat, det in g.detalles.items() %}
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;" class="edit-cat-row" data-cat="{{ cat }}" data-rows='{{ det.row_nums | tojson }}'>
+                                <span style="font-size: 12px; font-weight: 600; color: #4b5563;">{{ cat }}:</span>
+                                <input type="number" step="0.01" value="{{ det.monto|float }}" class="filter-input edit-cat-monto" style="width: 100px; text-align: right; padding: 4px;" id="input-monto-{{ card_num }}-{{ cat }}">
+                            </div>
+                        {% endfor %}
+                        </div>
+
+                        <div style="border-top: 1px solid #e5e7eb; margin: 8px 0;"></div>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <span style="font-size: 12px; font-weight: 700; color: #1f2937;">Viáticos globales:</span>
+                            <input type="number" step="0.01" id="edit-viatico-{{ card_num }}" value="{{ viaticos }}" class="filter-input" style="width: 100px; text-align: right; padding: 4px;" placeholder="Viáticos">
+                        </div>
+                        
+                        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                            <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px; background: #9ca3af;" onclick="toggleEdit('{{ card_num }}')">Cancelar</button>
+                            <button class="btn btn-primary" style="padding: 4px 10px; font-size: 12px;" onclick="guardarEdicion('{{ card_num }}')">Guardar</button>
+                        </div>
+                    </div>
+                </div>
+
+                {% if g.detalles %}
+                <!-- Paneles de detalle -->
+                <div style="margin-top: 8px; padding-top: 10px; border-top: 1px solid #f3f4f6;">
+                    {% for cat, det in g.detalles.items() %}
+                    <div id="cat-detail-{{ card_idx }}-{{ cat }}" style="display: block; padding: 12px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb; margin-bottom: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: 700; font-size: 14px; color: #374151;">{{ cat }}</span>
+                            <span style="font-weight: 700; font-size: 14px; color: #059669;" id="display-monto-{{ card_num }}-{{ cat }}">${{ "{:,.2f}".format(det.monto) }}</span>
+                        </div>
+                        {% if det.comentarios %}
+                        <div style="font-size: 13px; color: #4b5563; margin-bottom: 8px;">
+                            <div style="font-weight: 600; margin-bottom: 2px;">📝 Comentarios:</div>
+                            <ul style="margin: 0; padding-left: 18px;">
+                            {% for c in det.comentarios %}
+                                <li>{{ c }}</li>
+                            {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        {% if det.fotos %}
+                        <div class="fotos-grid">
+                            {% for f in det.fotos %}
+                            <img src="{% if f.startswith('http') %}{{ f }}{% else %}/api/foto?path={{ f }}{% endif %}" class="foto-thumb" onclick="abrirModal(this.src, '{{ card_num }}', '{{ cat }}', this)" loading="lazy" alt="Ticket" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22 style=%22background:%23fee2e2;border-radius:8px%22><text x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2212%22 fill=%22%23dc2626%22 font-family=%22sans-serif%22 font-weight=%22bold%22>Error</text></svg>'">
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Modal para ampliar foto -->
+    <div class="foto-modal" id="fotoModal" onclick="cerrarModal()">
+        <button class="foto-modal-close" onclick="cerrarModal()">✕</button>
+        <img id="fotoModalImg" src="" alt="Ticket Ampliado" onclick="event.stopPropagation()">
+        
+        <!-- Captura de monto manual -->
+        <div class="foto-monto-container" id="fotoMontoContainer" onclick="event.stopPropagation()">
+            <span style="color: white; font-weight: 600;">Monto: $</span>
+            <input type="number" id="fotoMontoInput" step="0.01" placeholder="0.00" onkeydown="if(event.key==='Enter') { event.preventDefault(); guardarMontoFoto(); }">
+            <button type="button" class="foto-monto-btn" id="btnGuardarFoto" onclick="guardarMontoFoto()">Sumar y Guardar</button>
+            <div id="fotoMontoStatus">¡Guardado!</div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let currentFotoContext = null;
+    let adminPwd = sessionStorage.getItem('adminPwd') || null;
+
+    async function getAdminPwd() {
+        if (adminPwd) return adminPwd;
+        let pwd = prompt("Ingresa la contraseña de administrador para guardar cambios:", "");
+        if (pwd) {
+            adminPwd = pwd;
+            sessionStorage.setItem('adminPwd', pwd);
+        }
+        return pwd;
+    }
+
+    async function eliminarFoto(src) {
+        const password = await getAdminPwd();
+        if (!password) return;
+        
+        if (!confirm("¿Seguro que deseas eliminar esta foto permanentemente?")) return;
+    }
+
+    function abrirModal(src, cardNum, cat, imgElement) {
+        document.getElementById('fotoModalImg').src = src;
+        
+        let montoPrevio = imgElement ? (imgElement.getAttribute('data-monto') || '') : '';
+        document.getElementById('fotoMontoInput').value = montoPrevio;
+        document.getElementById('fotoMontoStatus').style.display = 'none';
+        
+        currentFotoContext = imgElement ? { cardNum, cat, imgElement } : null;
+        document.getElementById('fotoMontoContainer').style.display = imgElement ? 'flex' : 'none';
+        
+        document.getElementById('fotoModal').classList.add('open');
+        setTimeout(() => document.getElementById('fotoMontoInput').focus(), 100);
+    }
+    
+    async function guardarMontoFoto() {
+        if (!currentFotoContext) return;
+        let input = document.getElementById('fotoMontoInput');
+        let nuevoMonto = parseFloat(input.value) || 0;
+        
+        let { cardNum, cat, imgElement } = currentFotoContext;
+        let montoPrevio = parseFloat(imgElement.getAttribute('data-monto')) || 0;
+        
+        if (nuevoMonto !== montoPrevio || !imgElement.hasAttribute('data-monto')) {
+            imgElement.setAttribute('data-monto', nuevoMonto);
+            
+            let catInput = document.getElementById(`input-monto-${cardNum}-${cat}`);
+            if (catInput) {
+                let totalCat = parseFloat(catInput.value) || 0;
+                totalCat = totalCat - montoPrevio + nuevoMonto;
+                catInput.value = totalCat.toFixed(2);
+                
+                let displayCat = document.getElementById(`display-monto-${cardNum}-${cat}`);
+                if (displayCat) displayCat.innerText = `$${totalCat.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                
+                // Recalcular gran total de la tarjeta
+                let granTotal = 0;
+                document.querySelectorAll(`#edit-categorias-${cardNum} .edit-cat-monto`).forEach(el => {
+                    granTotal += parseFloat(el.value) || 0;
+                });
+                let displayGranTotal = document.getElementById(`gran-total-${cardNum}`);
+                if (displayGranTotal) displayGranTotal.innerHTML = `$${granTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ✏️`;
+                
+                // Mostrar estatus localmente
+                let status = document.getElementById('fotoMontoStatus');
+                status.style.display = 'block';
+                status.innerText = "¡Suma calculada!";
+                
+                // Guardar silenciosamente en backend
+                await guardarEdicionSilenciosa(cardNum);
+            }
+        }
+    }
+    
+    async function guardarEdicionSilenciosa(cardNum) {
+        const pwd = await getAdminPwd();
+        if (!pwd) return;
+        
+        const payload = {
+            password: pwd,
+            categorias: {}
+        };
+        const viaticoInput = document.getElementById(`edit-viatico-${cardNum}`);
+        if (viaticoInput) payload.viaticos = parseFloat(viaticoInput.value) || 0;
+        
+        const rows = document.querySelectorAll(`#edit-categorias-${cardNum} .edit-cat-row`);
+        rows.forEach(row => {
+            const cat = row.getAttribute('data-cat');
+            const rowNums = JSON.parse(row.getAttribute('data-rows') || '[]');
+            const montoInput = row.querySelector('.edit-cat-monto');
+            const monto = parseFloat(montoInput.value) || 0;
+            payload.categorias[cat] = { monto: monto, row_nums: rowNums };
+        });
+        
+        try {
+            const btn = document.getElementById('btnGuardarFoto');
+            const oldText = btn.innerText;
+            btn.innerText = 'Guardando...';
+            btn.disabled = true;
+            
+            const res = await fetch('/api/editar_gasto', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            btn.innerText = oldText;
+            btn.disabled = false;
+            
+            let status = document.getElementById('fotoMontoStatus');
+            if (data.ok) {
+                status.innerText = "¡Guardado en el servidor!";
+                setTimeout(() => { 
+                    status.style.display = 'none'; 
+                    cerrarModal();
+                }, 800);
+            } else {
+                status.innerText = "⚠️ Error: " + data.msg;
+                status.style.color = "#ef4444";
+            }
+        } catch (err) {
+            let status = document.getElementById('fotoMontoStatus');
+            status.innerText = "⚠️ Error de red";
+            status.style.color = "#ef4444";
+            status.style.display = 'block';
+        }
+    }
+    
+    function cerrarModal() {
+        document.getElementById('fotoModal').classList.remove('open');
+    }
+    
+    function filtrarGastos() {
+        const t = document.getElementById('filtroTienda').value;
+        const u = document.getElementById('filtroUsuario').value.toLowerCase();
+        const fDate = document.getElementById('filtroFecha').value; // Formato YYYY-MM-DD
+        
+        let tY = -1, tM = -1, tD = -1;
+        if (fDate) {
+            const parts = fDate.split('-');
+            if (parts.length === 3) {
+                tY = parseInt(parts[0], 10);
+                tM = parseInt(parts[1], 10);
+                tD = parseInt(parts[2], 10);
+            }
+        }
+        
+        const cards = document.querySelectorAll('.gasto-card');
+        cards.forEach(card => {
+            const cardT = card.getAttribute('data-tienda');
+            const cardU = card.getAttribute('data-usuario');
+            const cardF = card.getAttribute('data-fecha').trim();
+            
+            let cY = -1, cM = -1, cD = -1;
+            if (cardF) {
+                if (!isNaN(cardF) && !cardF.includes('/')) {
+                     const serial = parseInt(cardF, 10);
+                     const dateObj = new Date(Math.round((serial - 25569) * 86400 * 1000));
+                     cY = dateObj.getUTCFullYear();
+                     cM = dateObj.getUTCMonth() + 1;
+                     cD = dateObj.getUTCDate();
+                } else {
+                     // Parse manually to avoid browser new Date() quirks
+                     // Remove time part if exists
+                     const datePart = cardF.split(' ')[0];
+                     const p = datePart.split(/[-/]/).map(x => parseInt(x, 10));
+                     
+                     if (p.length === 3) {
+                         // Find year
+                         let idxY = p.findIndex(x => x > 31);
+                         if (idxY !== -1) {
+                             cY = p[idxY];
+                             p.splice(idxY, 1);
+                         } else {
+                             // If no 4-digit year, assume the last one is the year (e.g. MM/DD/YY)
+                             cY = p[2] + 2000;
+                             p.splice(2, 1);
+                         }
+                         
+                         // p has 2 elements left. Check if they match tM and tD in either order.
+                         // We do this matching directly below.
+                         if ((p[0] === tM && p[1] === tD) || (p[0] === tD && p[1] === tM)) {
+                             cM = tM;
+                             cD = tD;
+                         } else {
+                             cM = p[0];
+                             cD = p[1];
+                         }
+                     }
+                }
+            }
+            
+            const matchT = (t === 'ALL' || cardT === t);
+            const matchU = (u === '' || cardU.includes(u));
+            const matchF = (!fDate || (tY === cY && tM === cM && tD === cD));
+            
+            if (matchT && matchU && matchF) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+    
+    function toggleEdit(index) {
+        const displayView = document.getElementById('display-view-' + index);
+        const editView = document.getElementById('edit-view-' + index);
+        if (displayView.style.display === 'none') {
+            displayView.style.display = 'block';
+            editView.style.display = 'none';
+        } else {
+            displayView.style.display = 'none';
+            editView.style.display = 'block';
+        }
+    }
+    
+    function switchCategoria(cardIdx, cat) {
+        // Todos los paneles y botones de esta tarjeta
+        const allPanels = document.querySelectorAll('[id^="cat-detail-' + cardIdx + '-"]');
+        const allBtns   = document.querySelectorAll('[id^="btn-' + cardIdx + '-"]');
+        const activeBtn = document.getElementById('btn-' + cardIdx + '-' + cat);
+        const isActive  = activeBtn && activeBtn.classList.contains('open');
+
+        if (isActive) {
+            // Ya estaba activo: volver a mostrar TODAS las categorias
+            allPanels.forEach(p => p.style.display = 'block');
+            allBtns.forEach(b => b.classList.remove('open'));
+        } else {
+            // Mostrar SOLO la categoria seleccionada
+            allPanels.forEach(p => p.style.display = 'none');
+            allBtns.forEach(b => b.classList.remove('open'));
+            const panel = document.getElementById('cat-detail-' + cardIdx + '-' + cat);
+            if (panel) panel.style.display = 'block';
+        }
+    }
+    
+    async function guardarEdicion(index) {
+        const password = await getAdminPwd();
+        if (!password) return; // cancelado o vacío
+        
+        const btn = event.target;
+        const originalText = btn.innerText;
+        btn.innerText = "Guardando...";
+        btn.disabled = true;
+        
+        // Recolectar datos por categoría
+        const categoriasData = {};
+        const container = document.getElementById('edit-categorias-' + index);
+        const rows = container.querySelectorAll('.edit-cat-row');
+        rows.forEach(row => {
+            const cat = row.getAttribute('data-cat');
+            const rowNums = JSON.parse(row.getAttribute('data-rows'));
+            const monto = parseFloat(row.querySelector('.edit-cat-monto').value) || 0;
+            categoriasData[cat] = {
+                monto: monto,
+                row_nums: rowNums
+            };
+        });
+
+        const viaticoStr = document.getElementById('edit-viatico-' + index).value;
+        const viaticos = parseFloat(viaticoStr) || 0;
+        
+        try {
+            const resp = await fetch('/api/editar_gasto', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    password: password,
+                    categorias: categoriasData,
+                    viaticos: viaticos
+                })
+            });
+            const data = await resp.json();
+            if (data.ok) {
+                alert("Guardado correctamente. La página se actualizará.");
+                window.location.reload();
+            } else {
+                alert("Error: " + data.msg);
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        } catch (error) {
+            alert("Error de conexión al guardar.");
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    }
+</script>
+</body>
+</html>

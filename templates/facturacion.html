@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Facturación — WALMEX</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="manifest" href="/static/manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            background: #f0f2f5;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0; padding: 0;
+        }
+
+        .phone-wrapper {
+            width: 100%;
+            max-width: 480px;
+            min-height: 100vh;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Header ── */
+        .app-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 16px 14px;
+            border-bottom: 1px solid #e8eaed;
+            background: #fff;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .back-arrow {
+            color: #8b5cf6;
+            font-size: 22px;
+            text-decoration: none;
+            line-height: 1;
+        }
+
+        .header-title { flex: 1; }
+
+        .header-title h5 {
+            color: #8b5cf6;
+            font-size: 17px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .header-title small {
+            font-size: 11px;
+            color: #9ca3af;
+            font-weight: 500;
+        }
+
+        /* ── Content ── */
+        .content-body { 
+            padding: 24px 16px; 
+            flex: 1; 
+            display: flex;
+            flex-direction: column;
+        }
+
+        .upload-card {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 16px;
+            padding: 32px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 24px;
+        }
+
+        .upload-card:hover {
+            border-color: #8b5cf6;
+            background: #f3e8ff;
+        }
+
+        .upload-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+            display: block;
+        }
+        
+        .upload-title {
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 4px;
+        }
+        
+        .upload-subtitle {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .loading-overlay {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .spinner-border {
+            color: #8b5cf6;
+            width: 3rem; height: 3rem;
+            margin-bottom: 16px;
+        }
+
+        /* ── Results ── */
+        #resultsSection {
+            display: none;
+        }
+
+        .info-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .info-row:last-child { margin-bottom: 0; }
+        
+        .info-label { color: #64748b; font-weight: 500; }
+        .info-value { color: #0f172a; font-weight: 700; }
+
+        .table-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .prod-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .prod-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px;
+            background: #fff;
+        }
+
+        .prod-card.match { border-left: 4px solid #10b981; }
+        .prod-card.diff { border-left: 4px solid #ef4444; }
+
+        .prod-name { font-weight: 700; font-size: 14px; color: #1e293b; margin-bottom: 4px; }
+        
+        .prod-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #475569;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+        
+        .status-badge.match { background: #d1fae5; color: #065f46; }
+        .status-badge.diff { background: #fee2e2; color: #991b1b; }
+
+    </style>
+</head>
+<body>
+
+<div class="phone-wrapper">
+    <div class="app-header">
+        <a href="/" class="back-arrow">←</a>
+        <div class="header-title">
+            <h5>Facturacion</h5>
+            <small>WALMEX</small>
+        </div>
+    </div>
+
+    <div class="content-body">
+        
+
+
+        <!-- Upload Area -->
+        <label for="fileInput" class="upload-card" id="uploadArea">
+            <span class="upload-icon">📸</span>
+            <div class="upload-title">Tomar foto de la Factura</div>
+        </label>
+        <input type="file" id="fileInput" accept="image/*" capture="environment">
+
+        <!-- Loading -->
+        <div class="loading-overlay" id="loadingArea">
+            <div class="spinner-border" role="status"></div>
+            <h6 style="color: #475569; font-weight:600;">Analizando documento...</h6>
+            <p style="font-size: 12px; color: #94a3b8; text-align: center;">Buscando folio en la base de datos de Supabase</p>
+        </div>
+
+
+
+        <!-- Results Section -->
+        <div id="resultsSection" style="display: none;">
+            <div class="info-card">
+                <div class="info-row">
+                    <span class="info-label">Serie (detectada):</span>
+                    <span class="info-value" id="resSerie">--</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Folio (detectado):</span>
+                    <span class="info-value" id="resFolio">--</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Fecha:</span>
+                    <span class="info-value" id="resFecha">--</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Total:</span>
+                    <span class="info-value" id="resTotal">--</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Estado en DB:</span>
+                    <span class="info-value" id="resDbStatus" style="color: #8b5cf6;">--</span>
+                </div>
+            </div>
+
+            <div class="table-title" style="margin-top: 20px;">🛍️ Comparación con Supabase</div>
+            <div class="prod-list" id="prodList">
+                <!-- Javascript will populate this -->
+            </div>
+            
+            <div id="conciliacionContainer" style="margin-top: 30px;">
+                <input type="file" id="reciboInput" accept="image/*" capture="environment" style="display: none;">
+                <button id="btnEscanearRecibo" class="btn w-100" style="background: #2563eb; color: white; padding: 14px; font-weight: bold; border-radius: 12px; border: none; font-size: 16px; margin-bottom: 10px;">
+                    📸 Escanear Acuse de Recibo
+                </button>
+                <button id="btnCancelarFactura" class="btn w-100" style="background: #ef4444; color: white; padding: 14px; font-weight: bold; border-radius: 12px; border: none; font-size: 16px; margin-top: 10px;">
+                    ❌ Factura Cancelada
+                </button>
+                <button id="btnSinAcuse" class="btn w-100" style="background: #f59e0b; color: white; padding: 14px; font-weight: bold; border-radius: 12px; border: none; font-size: 16px; margin-top: 10px;">
+                    ⚠️ Sin Folio
+                </button>
+            </div>
+        </div>
+        
+        <!-- Reconciliation Section -->
+        <div id="reconciliationSection" style="display: none;">
+            <div class="table-title">📊 Resultado de Conciliación</div>
+            <div class="prod-list" id="reconList">
+                <!-- Javascript will populate this -->
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button id="btnRecibido" class="btn w-100" style="background: #10b981; color: white; font-weight: bold; padding: 12px; border-radius: 10px; border: none; font-size: 16px;">Recibido</button>
+                <button id="btnReiniciar" class="btn btn-outline-secondary w-100" style="padding: 12px; border-radius: 10px; font-weight: bold; font-size: 16px;">Cancelar</button>
+            </div>
+        </div>
+
+    </div>
+    
+    <!-- Scanner UI -->
+    <div id="scannerUI" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 9999; flex-direction: column;">
+        <div style="padding: 16px; color: white; display: flex; justify-content: space-between; align-items: center; background: #111;">
+            <button onclick="closeScanner()" style="background:none; border:none; color:white; font-size:16px;">❌ Cancelar</button>
+            <span id="scannerTitle" style="font-weight:bold;">Escanear Documento</span>
+            <div style="width:80px"></div>
+        </div>
+        <div style="flex: 1; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; background: #222;">
+            <video id="videoElement" autoplay playsinline style="width: 100%; height: 100%; object-fit: contain; position:absolute;"></video>
+            <canvas id="canvasOverlay" style="width: 100%; height: 100%; object-fit: contain; position:absolute; z-index: 10;"></canvas>
+            <div id="scannerLoading" style="position:absolute; color:white; font-weight:bold; z-index: 20;">Cargando motor OpenCV...</div>
+        </div>
+        <div style="padding: 24px; display: flex; justify-content: center; background: #111;">
+            <button id="btnCapture" style="width: 70px; height: 70px; border-radius: 50%; background: white; border: 4px solid #ccc; transition: transform 0.1s;"></button>
+        </div>
+    </div>
+</div>
+
+<!-- Load OpenCV.js asynchronously -->
+<script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+
+<script>
+    const fileInput = document.getElementById('fileInput');
+    const reciboInput = document.getElementById('reciboInput');
+    const uploadArea = document.getElementById('uploadArea');
+    const loadingArea = document.getElementById('loadingArea');
+    const resultsSection = document.getElementById('resultsSection');
+    const prodList = document.getElementById('prodList');
+    const reconList = document.getElementById('reconList');
+    const btnEscanearRecibo = document.getElementById('btnEscanearRecibo');
+    const btnCancelarFactura = document.getElementById('btnCancelarFactura');
+    const btnSinAcuse = document.getElementById('btnSinAcuse');
+    const reconciliationSection = document.getElementById('reconciliationSection');
+    const btnReiniciar = document.getElementById('btnReiniciar');
+    const btnRecibido = document.getElementById('btnRecibido');
+    
+    let esperados = []; // Para guardar el estado de la factura
+    let currentFolio = null;
+    let currentUrlFactura = null;
+    let currentConciliacion = [];
+
+    fileInput.addEventListener('change', async (e) => {
+        if (!e.target.files || e.target.files.length === 0) return;
+        
+        const file = e.target.files[0];
+        if (!file) return;
+
+        uploadArea.style.display = 'none';
+        resultsSection.style.display = 'none';
+        loadingArea.style.display = 'flex';
+
+        const formData = new FormData();
+        formData.append('imagen', file);
+
+
+        try {
+            const res = await fetch('/api/analizar_factura', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+            loadingArea.style.display = 'none';
+
+            if (!res.ok) {
+                alert("Error analizando: " + (data.error || "Desconocido"));
+                uploadArea.style.display = 'block';
+                return;
+            }
+
+            if (data.factura && data.factura.folio === 'No detectado' && data.db_status === 'NOT_FOUND') {
+                alert("No se detectó una factura válida o no se pudo leer el folio. Por favor, intenta tomar la foto nuevamente.");
+                uploadArea.style.display = 'block';
+                return;
+            }
+
+            mostrarResultados(data);
+        } catch (err) {
+            console.error(err);
+            alert("Error de conexión al servidor.");
+            loadingArea.style.display = 'none';
+            uploadArea.style.display = 'block';
+        }
+    });
+
+    function mostrarResultados(data) {
+        resultsSection.style.display = 'block';
+        
+        currentFolio = data.factura.folio;
+        if (data.factura.url_factura) {
+            currentUrlFactura = data.factura.url_factura;
+        }
+        
+        document.getElementById('resSerie').textContent = data.factura.serie || 'N/A';
+        document.getElementById('resFolio').textContent = currentFolio || 'N/A';
+        document.getElementById('resFecha').textContent = data.factura.fecha || 'N/A';
+        document.getElementById('resTotal').textContent = data.factura.total || 'N/A';
+        
+        if (data.db_status === 'FOUND') {
+            document.getElementById('resDbStatus').textContent = '✅ Folio Encontrado';
+            document.getElementById('resDbStatus').style.color = '#10b981';
+        } else {
+            document.getElementById('resDbStatus').textContent = '❌ Folio NO encontrado';
+            document.getElementById('resDbStatus').style.color = '#ef4444';
+        }
+
+        prodList.innerHTML = '';
+        
+        if (data.comparacion && data.comparacion.length > 0) {
+            data.comparacion.forEach(item => {
+                const card = document.createElement('div');
+                const isMatch = item.estado === 'OK';
+                
+                // Style the card to clearly show DB vs OCR
+                card.style.border = '1px solid #e2e8f0';
+                card.style.borderRadius = '10px';
+                card.style.padding = '14px';
+                card.style.background = '#fff';
+                card.style.marginBottom = '12px';
+                card.style.borderLeft = isMatch ? '5px solid #10b981' : '5px solid #ef4444';
+
+                card.innerHTML = `
+                    <div style="font-weight: 700; color: #1e293b; font-size: 15px; margin-bottom: 8px;">
+                        ${item.producto_db}
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: stretch; gap: 10px;">
+                        <div style="flex: 1; background: #f8fafc; padding: 10px; border-radius: 8px;">
+                            <div style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 4px;">DATOS EN SUPABASE</div>
+                            <div style="font-size: 13px; color: #334155;">
+                                Cantidad: <b>${item.cantidad_db || 0}</b><br>
+                                Precio: <b>$${item.precio_db || 0}</b>
+                            </div>
+                        </div>
+                        <div style="flex: 1; background: ${isMatch ? '#ecfdf5' : '#fef2f2'}; padding: 10px; border-radius: 8px;">
+                            <div style="font-size: 11px; font-weight: 700; color: ${isMatch ? '#059669' : '#b91c1c'}; margin-bottom: 4px;">TEXTO EN LA FOTO</div>
+                            <div style="font-size: 12px; color: #475569;">
+                                ${isMatch ? '✅ Producto detectado en la imagen.' : '❌ No se encontró texto parecido en el escaneo.'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                prodList.appendChild(card);
+            });
+        } else {
+            prodList.innerHTML = '<div style="text-align:center; padding: 20px; color: #64748b;">No hay productos para comparar.</div>';
+        }
+
+
+        // Save expected products for reconciliation
+        esperados = [];
+        if (data.comparacion) {
+            data.comparacion.forEach(item => {
+                esperados.push({
+                    producto: item.producto_db,
+                    cantidad: item.cantidad_db
+                });
+            });
+        }
+    }
+    
+    btnEscanearRecibo.addEventListener('click', () => {
+        reciboInput.click();
+    });
+
+    btnSinAcuse.addEventListener('click', async () => {
+        if (!currentFolio) {
+            alert("No hay factura escaneada.");
+            return;
+        }
+        
+        let razon = prompt("Escribe la razón por la que estás reportando sin folio:");
+        if (razon === null) return; // Canceló el prompt
+        if (razon.trim() === "") {
+            alert("Debes escribir una razón obligatoriamente.");
+            return;
+        }
+        
+        // Mostrar loading
+        resultsSection.style.display = 'none';
+        loadingArea.querySelector('p').textContent = "Guardando justificación...";
+        loadingArea.style.display = 'flex';
+        
+        try {
+            const res = await fetch('/api/sin_acuse', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ folio: currentFolio, razon: razon })
+            });
+            
+            const data = await res.json();
+            
+            if (data.success) {
+                alert("La justificación ha sido guardada en la base de datos.");
+                // Reiniciar la vista
+                loadingArea.style.display = 'none';
+                uploadArea.style.display = 'block';
+                document.getElementById('folioInput').value = '';
+                currentFolio = null;
+            } else {
+                alert("Error: " + (data.error || "Ocurrió un problema al guardar"));
+                loadingArea.style.display = 'none';
+                resultsSection.style.display = 'block'; // Volver a mostrar si falló
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Error de conexión al guardar.");
+            loadingArea.style.display = 'none';
+            resultsSection.style.display = 'block';
+        }
+    });
+
+    btnCancelarFactura.addEventListener('click', async () => {
+        if (!currentFolio) {
+            alert("No hay factura escaneada.");
+            return;
+        }
+        
+        if (confirm("¿Seguro que quieres cancelar esta factura?")) {
+            // Mostrar loading
+            resultsSection.style.display = 'none';
+            loadingArea.querySelector('p').textContent = "Cancelando factura...";
+            loadingArea.style.display = 'flex';
+            
+            try {
+                const res = await fetch('/api/cancelar_factura', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ folio: currentFolio })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert("La factura ha sido movida a facturas canceladas exitosamente.");
+                    // Reiniciar la vista
+                    loadingArea.style.display = 'none';
+                    uploadArea.style.display = 'block';
+                    document.getElementById('folioInput').value = '';
+                    currentFolio = null;
+                } else {
+                    alert("Error: " + (data.error || "Ocurrió un problema al cancelar"));
+                    loadingArea.style.display = 'none';
+                    resultsSection.style.display = 'block'; // Volver a mostrar si falló
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Error de conexión al cancelar.");
+                loadingArea.style.display = 'none';
+                resultsSection.style.display = 'block';
+            }
+        }
+    });
+
+    
+    reciboInput.addEventListener('change', async (e) => {
+        if (!e.target.files || e.target.files.length === 0) return;
+        const file = e.target.files[0];
+        
+        resultsSection.style.display = 'none';
+        loadingArea.querySelector('p').textContent = "Extrayendo cantidades del recibo de almacén...";
+        loadingArea.style.display = 'flex';
+        
+        const formData = new FormData();
+        formData.append('imagen', file);
+        formData.append('esperados', JSON.stringify(esperados));
+        if (currentFolio) {
+            formData.append('folio', currentFolio);
+        }
+        
+        try {
+            const res = await fetch('/api/analizar_recibo', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            loadingArea.style.display = 'none';
+            
+            if (!res.ok) {
+                alert("Error analizando recibo: " + (data.error || "Desconocido"));
+                resultsSection.style.display = 'block';
+                return;
+            }
+            
+            mostrarConciliacion(data);
+        } catch (err) {
+            console.error(err);
+            alert("Error de conexión.");
+            loadingArea.style.display = 'none';
+            resultsSection.style.display = 'block';
+        }
+    });
+    
+    function mostrarConciliacion(data) {
+        reconciliationSection.style.display = 'block';
+        reconList.innerHTML = '';
+        
+        currentConciliacion = data.conciliacion || [];
+        
+        if (data.conciliacion && data.conciliacion.length > 0) {
+            data.conciliacion.forEach(item => {
+                const card = document.createElement('div');
+                const isOk = item.estado === 'OK';
+                
+                card.style.border = '1px solid #e2e8f0';
+                card.style.borderRadius = '10px';
+                card.style.padding = '14px';
+                card.style.background = '#fff';
+                card.style.marginBottom = '12px';
+                card.style.borderLeft = isOk ? '5px solid #10b981' : '5px solid #f59e0b';
+                
+                card.innerHTML = `
+                    <div style="font-weight: 700; color: #1e293b; font-size: 15px; margin-bottom: 8px;">
+                        ${item.producto}
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                        <div style="text-align: center; flex: 1;">
+                            <div style="font-size: 10px; color: #64748b; font-weight: bold;">FACTURADO</div>
+                            <div style="font-size: 16px; font-weight: bold; color: #334155;">${item.esperado}</div>
+                        </div>
+                        <div style="text-align: center; flex: 1;">
+                            <div style="font-size: 10px; color: #64748b; font-weight: bold;">RECIBIDO</div>
+                            <div style="font-size: 16px; font-weight: bold; color: ${isOk ? '#10b981' : '#f59e0b'};">${item.recibido}</div>
+                        </div>
+                    </div>
+                    ${!isOk ? `<div style="background: #fef3c7; color: #b45309; padding: 6px; border-radius: 6px; font-size: 12px; text-align: center; margin-top: 10px; font-weight: bold;">⚠️ Diferencia de ${item.diferencia} unidades</div>` : `<div style="background: #ecfdf5; color: #047857; padding: 6px; border-radius: 6px; font-size: 12px; text-align: center; margin-top: 10px; font-weight: bold;">✅ Cantidad Coincide</div>`}
+                `;
+                reconList.appendChild(card);
+            });
+        } else {
+            reconList.innerHTML = '<div style="text-align:center; padding: 20px; color: #64748b;">No hay productos para conciliar.</div>';
+        }
+    }
+    
+    btnRecibido.addEventListener('click', async () => {
+        if (!currentFolio || currentFolio === 'No detectado') {
+            alert('No se puede actualizar sin un folio válido.');
+            return;
+        }
+        
+        // Find discrepancies
+        const toUpdate = currentConciliacion.filter(item => item.diferencia !== 0);
+        if (toUpdate.length === 0) {
+            // No differences, just proceed as done
+            btnReiniciar.click();
+            return;
+        }
+        
+        const payload = {
+            folio: currentFolio,
+            productos: toUpdate.map(item => ({
+                producto: item.producto,
+                nueva_cantidad: item.recibido
+            }))
+        };
+        
+        const prevText = btnRecibido.innerHTML;
+        btnRecibido.innerHTML = '⏳ Guardando...';
+        btnRecibido.disabled = true;
+        
+        try {
+            const res = await fetch('/api/actualizar_recibo', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            const resultData = await res.json();
+            if (resultData.ok) {
+                alert('¡Cantidades actualizadas exitosamente en la base de datos!');
+                btnReiniciar.click();
+            } else {
+                alert('Error al actualizar: ' + resultData.error);
+                btnRecibido.innerHTML = prevText;
+                btnRecibido.disabled = false;
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error de conexión.');
+            btnRecibido.innerHTML = prevText;
+            btnRecibido.disabled = false;
+        }
+    });
+    
+    btnReiniciar.addEventListener('click', () => {
+        reconciliationSection.style.display = 'none';
+        resultsSection.style.display = 'none';
+        uploadArea.style.display = 'block';
+        fileInput.value = '';
+        reciboInput.value = '';
+    });
+
+    // ==========================================
+    // OpenCV LIVE SCANNER LOGIC
+    // ==========================================
+    let openCvReady = false;
+    let scannerStream = null;
+    let scanType = null; // 'factura' or 'acuse'
+    let video = document.getElementById('videoElement');
+    let canvas = document.getElementById('canvasOverlay');
+    let ctx = canvas.getContext('2d');
+    let bestContourPoints = null;
+    let animationFrameId = null;
+
+    function onOpenCvReady() {
+        openCvReady = true;
+        let loader = document.getElementById('scannerLoading');
+        if(loader) loader.style.display = 'none';
+        console.log("OpenCV.js is ready.");
+    }
+
+    // Override clicks to open scanner
+    document.getElementById('uploadArea').onclick = (e) => {
+        e.preventDefault();
+        openScanner('factura');
+    };
+    
+    // Remove old listeners for btnEscanearRecibo if they existed (we'll just replace the onclick)
+    const oldBtn = document.getElementById('btnEscanearRecibo');
+    const newBtn = oldBtn.cloneNode(true);
+    oldBtn.parentNode.replaceChild(newBtn, oldBtn);
+    newBtn.onclick = () => { openScanner('acuse'); };
+
+    async function openScanner(type) {
+        scanType = type;
+        if (!openCvReady) {
+            // Fallback to native input if OpenCV is not loaded
+            if (type === 'factura') fileInput.click();
+            else reciboInput.click();
+            return;
+        }
+
+        document.getElementById('scannerUI').style.display = 'flex';
+        document.getElementById('scannerTitle').textContent = type === 'factura' ? 'Escanear Factura' : 'Escanear Acuse';
+        
+        try {
+            scannerStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } } });
+            video.srcObject = scannerStream;
+            video.play();
+            
+            video.onloadedmetadata = () => {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                processVideo();
+            };
+        } catch (err) {
+            console.error("Camera error:", err);
+            closeScanner();
+            // Fallback to native file input if camera fails (e.g., HTTP)
+            alert("No se pudo acceder a la cámara en vivo. Usando cámara nativa del sistema.");
+            if (type === 'factura') fileInput.click();
+            else reciboInput.click();
+        }
+    }
+
+    function closeScanner() {
+        document.getElementById('scannerUI').style.display = 'none';
+        if (scannerStream) {
+            scannerStream.getTracks().forEach(track => track.stop());
+            scannerStream = null;
+        }
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+    }
+
+    function processVideo() {
+        if (!scannerStream) return;
+        
+        try {
+            let src = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            src.data.set(imgData.data);
+            
+            // Convert to grayscale
+            let gray = new cv.Mat();
+            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+            
+            // Blur & Canny Edge Detection
+            let blurred = new cv.Mat();
+            cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
+            let edges = new cv.Mat();
+            cv.Canny(blurred, edges, 75, 200, 3, false);
+            
+            // Find Contours
+            let contours = new cv.MatVector();
+            let hierarchy = new cv.Mat();
+            cv.findContours(edges, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+            
+            // Find largest contour with 4 points
+            let maxArea = 0;
+            let bestApprox = new cv.Mat();
+            
+            for (let i = 0; i < contours.size(); ++i) {
+                let cnt = contours.get(i);
+                let area = cv.contourArea(cnt);
+                if (area > 10000) {
+                    let peri = cv.arcLength(cnt, true);
+                    let approx = new cv.Mat();
+                    cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
+                    
+                    if (approx.rows === 4 && area > maxArea) {
+                        maxArea = area;
+                        approx.copyTo(bestApprox);
+                    }
+                    approx.delete();
+                }
+            }
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (bestApprox.rows === 4) {
+                bestContourPoints = [];
+                for(let i=0; i<4; i++) {
+                    bestContourPoints.push({
+                        x: bestApprox.data32S[i*2],
+                        y: bestApprox.data32S[i*2+1]
+                    });
+                }
+                
+                // Draw green bounding box
+                ctx.beginPath();
+                ctx.moveTo(bestContourPoints[0].x, bestContourPoints[0].y);
+                for(let i=1; i<4; i++) {
+                    ctx.lineTo(bestContourPoints[i].x, bestContourPoints[i].y);
+                }
+                ctx.closePath();
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = '#10b981'; // Green
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+                ctx.fill();
+            } else {
+                bestContourPoints = null;
+            }
+            
+            src.delete(); gray.delete(); blurred.delete(); edges.delete();
+            contours.delete(); hierarchy.delete(); bestApprox.delete();
+            
+        } catch (err) {
+            console.error("OpenCV error:", err);
+        }
+        
+        animationFrameId = requestAnimationFrame(processVideo);
+    }
+    
+    document.getElementById('btnCapture').onclick = () => {
+        if (!scannerStream) return;
+        
+        // Temporarily pause processing
+        cancelAnimationFrame(animationFrameId);
+        
+        let src = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        src.data.set(imgData.data);
+        
+        let finalCanvas = document.createElement('canvas');
+        
+        if (bestContourPoints && bestContourPoints.length === 4) {
+            // Sort points: Top-Left, Top-Right, Bottom-Right, Bottom-Left
+            let pts = bestContourPoints.sort((a,b) => a.y - b.y);
+            let topPts = pts.slice(0,2).sort((a,b) => a.x - b.x);
+            let bottomPts = pts.slice(2,4).sort((a,b) => a.x - b.x);
+            
+            let tl = topPts[0]; let tr = topPts[1];
+            let bl = bottomPts[0]; let br = bottomPts[1];
+            
+            let widthA = Math.hypot(br.x - bl.x, br.y - bl.y);
+            let widthB = Math.hypot(tr.x - tl.x, tr.y - tl.y);
+            let maxWidth = Math.max(Math.floor(widthA), Math.floor(widthB));
+            
+            let heightA = Math.hypot(tr.x - br.x, tr.y - br.y);
+            let heightB = Math.hypot(tl.x - bl.x, tl.y - bl.y);
+            let maxHeight = Math.max(Math.floor(heightA), Math.floor(heightB));
+            
+            let dst = new cv.Mat();
+            let dsize = new cv.Size(maxWidth, maxHeight);
+            
+            let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [tl.x, tl.y, tr.x, tr.y, br.x, br.y, bl.x, bl.y]);
+            let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, maxWidth-1, 0, maxWidth-1, maxHeight-1, 0, maxHeight-1]);
+            
+            let M = cv.getPerspectiveTransform(srcTri, dstTri);
+            cv.warpPerspective(src, dst, M, dsize, cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar());
+            
+            cv.imshow(finalCanvas, dst);
+            
+            src.delete(); dst.delete(); srcTri.delete(); dstTri.delete(); M.delete();
+        } else {
+            // No contour detected, just take the raw photo
+            cv.imshow(finalCanvas, src);
+            src.delete();
+        }
+        
+        closeScanner();
+        
+        // Convert canvas to File and mock the input change event
+        finalCanvas.toBlob((blob) => {
+            const file = new File([blob], scanType + "_scanned.jpg", { type: "image/jpeg" });
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            
+            if (scanType === 'factura') {
+                fileInput.files = dataTransfer.files;
+                fileInput.dispatchEvent(new Event('change'));
+            } else {
+                reciboInput.files = dataTransfer.files;
+                reciboInput.dispatchEvent(new Event('change'));
+            }
+        }, "image/jpeg", 0.9);
+    };
+
+</script>
+</body>
+</html>

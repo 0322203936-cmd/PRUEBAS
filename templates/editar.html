@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Registro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            background: #f0f2f5;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        .phone-wrapper {
+            width: 100%;
+            max-width: 480px;
+            min-height: 100vh;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 18px 16px 14px;
+            border-bottom: 1px solid #e8eaed;
+        }
+
+        .back-arrow {
+            color: #1a73e8;
+            font-size: 20px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .app-header h5 {
+            color: #1a73e8;
+            font-size: 17px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .form-body {
+            padding: 20px 16px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .field-group label {
+            font-weight: 600;
+            font-size: 13px;
+            color: #5f6368;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .field-group input,
+        .field-group select,
+        .field-group textarea {
+            border: 1.5px solid #dadce0;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 14px;
+            color: #202124;
+            outline: none;
+            width: 100%;
+            background: #fff;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        .field-group input:focus,
+        .field-group select:focus,
+        .field-group textarea:focus {
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 3px rgba(26,115,232,0.1);
+        }
+
+        .field-group textarea {
+            resize: none;
+            height: 70px;
+        }
+
+        .select-wrapper {
+            position: relative;
+        }
+
+        .select-wrapper::after {
+            content: '';
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0; height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 6px solid #5f6368;
+            pointer-events: none;
+        }
+
+        .bottom-bar {
+            display: flex;
+            gap: 12px;
+            padding: 16px;
+            border-top: 1px solid #e8eaed;
+            background: #fff;
+        }
+
+        .btn-cancelar {
+            flex: 1;
+            border: 1.5px solid #dadce0;
+            background: #fff;
+            color: #202124;
+            border-radius: 6px;
+            padding: 11px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .btn-cancelar:hover { background: #f8f9fa; }
+
+        .btn-guardar {
+            flex: 1;
+            background: #1a73e8;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 11px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-guardar:hover { background: #1557b0; }
+    </style>
+</head>
+<body>
+<div class="phone-wrapper">
+
+    <div class="app-header">
+        <a href="/registros" class="back-arrow">&#8592;</a>
+        <h5>Editar Registro #{{ reg[0] }}</h5>
+    </div>
+
+    <form method="POST" action="/editar/{{ reg[0] }}" id="editForm" class="form-body">
+
+        <div class="field-group">
+            <label>Tienda</label>
+            <div class="select-wrapper">
+                <select name="tienda" required>
+                    {% for t in tiendas %}
+                    <option value="{{ t }}" {% if reg[1] == t %}selected{% endif %}>{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <label>Fecha</label>
+            <input type="text" name="fecha" value="{{ reg[2] }}" placeholder="DD/MM/YYYY" required>
+        </div>
+
+        <div class="field-group">
+            <label>Usuario</label>
+            <div class="select-wrapper">
+                <select name="usuario" required>
+                    <option value="" disabled>Selecciona usuario…</option>
+                    <option value="Mizael" {% if reg[3] == 'Mizael' %}selected{% endif %}>Mizael</option>
+                    <option value="Esteban" {% if reg[3] == 'Esteban' %}selected{% endif %}>Esteban</option>
+                    <option value="Victor" {% if reg[3] == 'Victor' %}selected{% endif %}>Victor</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <label>Producto</label>
+            <input type="text" name="producto" value="{{ reg[4] }}" required>
+        </div>
+
+        <div class="field-group">
+            <label>Inventario</label>
+            <input type="number" name="inventario" value="{{ reg[5] }}" min="0" inputmode="numeric">
+        </div>
+
+        <div class="field-group">
+            <label>Merma</label>
+            <input type="number" name="merma" value="{{ reg[6] }}" min="0" inputmode="numeric">
+        </div>
+
+        <div class="field-group">
+            <label>Razón de merma</label>
+            <div class="select-wrapper">
+                <select name="razon">
+                    <option value="">—</option>
+                    <option value="Fecha" {% if reg[7] == 'Fecha' %}selected{% endif %}>Fecha</option>
+                    <option value="Calidad" {% if reg[7] == 'Calidad' %}selected{% endif %}>Calidad</option>
+                </select>
+            </div>
+        </div>
+
+    </form>
+
+    <div class="bottom-bar">
+        <a href="/registros" class="btn-cancelar">Cancelar</a>
+        <button type="button" class="btn-guardar" onclick="document.getElementById('editForm').submit()">Guardar cambios</button>
+    </div>
+
+</div>
+
+<script>
+    // Bloquear Enter para no enviar accidentalmente
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+        }
+    });
+</script>
+</body>
+</html>

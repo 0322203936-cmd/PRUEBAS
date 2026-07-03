@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>WALMEX</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="manifest" href="/static/manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background: url('/static/bg_girasoles.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 420px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 32px;
+            /* Efecto Glassmorphism */
+            background: rgba(15, 25, 35, 0.70);
+            padding: 40px 30px;
+            border-radius: 24px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        /* ── Header ── */
+        .header {
+            text-align: center;
+        }
+
+        .logo-ring {
+            width: 80px;
+            height: 80px;
+            border-radius: 24px;
+            background: linear-gradient(135deg, #1a73e8, #0d9488);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 38px;
+            box-shadow: 0 8px 32px rgba(26,115,232,0.35);
+        }
+
+        .app-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.3px;
+        }
+
+        .app-subtitle {
+            font-size: 13px;
+            color: rgba(255,255,255,0.5);
+            margin-top: 4px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        /* ── Cards ── */
+        .cards {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            padding: 14px 22px;
+            border-radius: 20px;
+            text-decoration: none;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .card:active {
+            transform: scale(0.97);
+        }
+
+        /* INVENTARIO */
+        .card-inventario {
+            background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
+            box-shadow: 0 8px 32px rgba(26,115,232,0.40);
+        }
+
+        .card-inventario::before {
+            content: '';
+            position: absolute;
+            top: -30px; right: -30px;
+            width: 120px; height: 120px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.08);
+        }
+
+        /* GASTOS */
+        .card-gastos {
+            background: linear-gradient(135deg, #e67e22 0%, #c0392b 100%);
+            box-shadow: 0 8px 32px rgba(230,126,34,0.40);
+        }
+
+        .card-gastos::before {
+            content: '';
+            position: absolute;
+            top: -30px; right: -30px;
+            width: 120px; height: 120px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.08);
+        }
+
+        /* REPORTE */
+        .card-reporte {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 8px 32px rgba(16,185,129,0.40);
+        }
+
+        .card-reporte::before {
+            content: '';
+            position: absolute;
+            top: -30px; right: -30px;
+            width: 120px; height: 120px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.08);
+        }
+
+        /* FACTURACION */
+        .card-facturacion {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+            box-shadow: 0 8px 32px rgba(139,92,246,0.40);
+        }
+
+        .card-facturacion::before {
+            content: '';
+            position: absolute;
+            top: -30px; right: -30px;
+            width: 120px; height: 120px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.08);
+        }
+
+        .card-icon {
+            font-size: 40px;
+            flex-shrink: 0;
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2));
+        }
+
+        .card-text {
+            flex: 1;
+        }
+
+        .card-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.3px;
+            line-height: 1;
+            width: 100%;
+            text-align: center;
+        }
+
+        .card-desc {
+            font-size: 13px;
+            color: rgba(255,255,255,0.75);
+            margin-top: 5px;
+            font-weight: 500;
+        }
+
+        .card-arrow {
+            font-size: 22px;
+            color: rgba(255,255,255,0.6);
+            flex-shrink: 0;
+        }
+
+        /* ── Ripple ── */
+        .card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,0);
+            transition: background 0.2s;
+        }
+        .card:hover::after {
+            background: rgba(255,255,255,0.06);
+        }
+
+        /* ── Footer ── */
+        .footer {
+            font-size: 12px;
+            color: rgba(255,255,255,0.25);
+            text-align: center;
+        }
+
+        /* ── Animación de entrada ── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .header    { animation: fadeUp 0.4s ease both; }
+        .card:nth-child(1) { animation: fadeUp 0.4s ease 0.1s both; }
+        .card:nth-child(2) { animation: fadeUp 0.4s ease 0.2s both; }
+        .card:nth-child(3) { animation: fadeUp 0.4s ease 0.3s both; }
+        .card:nth-child(4) { animation: fadeUp 0.4s ease 0.4s both; }
+        .footer    { animation: fadeUp 0.4s ease 0.5s both; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <div class="logo-ring">🌸</div>
+        <div class="app-subtitle">WALMEX · Panel de captura</div>
+    </div>
+
+    <div class="cards">
+        <a href="/inventario" class="card card-inventario" id="btnInventario">
+            <div class="card-title">INVENTARIO</div>
+        </a>
+
+        <a href="/gastos" class="card card-gastos" id="btnGastos">
+            <div class="card-title">GASTOS</div>
+        </a>
+
+        <a href="/reporte" class="card card-reporte" id="btnReporte">
+            <div class="card-title">REPORTE</div>
+        </a>
+
+        <a href="/facturacion" class="card card-facturacion" id="btnFacturacion">
+            <div class="card-title">FACTURACIÓN</div>
+        </a>
+    </div>
+
+
+
+</div>
+
+<script>
+    // Registrar Service Worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            .then(reg => console.log('[SW] Registrado:', reg.scope))
+            .catch(err => console.warn('[SW] Error:', err));
+    }
+</script>
+
+</body>
+</html>
