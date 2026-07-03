@@ -1207,10 +1207,14 @@ def api_analizar_factura():
                                     cv2.THRESH_BINARY, 31, 15)
         # -----------------------------------------------
         
-        # Usar Tesseract con configuración optimizada para facturas
+        # Usar Tesseract con modo automático (mejor para documentos con tablas y columnas)
         import pytesseract
-        config_tess = '--psm 6 --oem 1'
-        full_text = pytesseract.image_to_string(img, lang='spa', config=config_tess)
+        # --psm 3: Segmentación automática de página (mejor para facturas con layout mixto)
+        # --oem 1: Motor LSTM más preciso
+        config_tess = '--psm 3 --oem 1'
+        full_text = pytesseract.image_to_string(img, lang='spa+eng', config=config_tess)
+        
+        print(f"--- RAW OCR TEXT ---\n{full_text}\n--------------------", flush=True)
         
         ocr_clean_lower = full_text.lower()
         
@@ -1220,9 +1224,12 @@ def api_analizar_factura():
         fecha_detectada = "No detectada"
         total_detectado = "No detectado"
         
-        # Buscar Folio (ej. "folio 810", "folio: 810", "folio no. 771", "follo810", "follot810")
-        # El usuario indicó que sus folios son siempre números, así que ignoramos cualquier letra
-        folio_match = re.search(r'fol[il]o[^\d]*(\d+)', ocr_clean_lower)
+        # Buscar Folio - múltiples patrones para tolerar errores de OCR
+        # ej. "Folio: 800", "Folio 800", "Foli0: 800", "F0lio 800"
+        folio_match = re.search(r'fol[^\d\n]{0,6}(\d{2,6})', ocr_clean_lower)
+        if not folio_match:
+            # Fallback: buscar "folio" seguido de número en la misma línea
+            folio_match = re.search(r'foli[o0]\s*[:\-]?\s*(\d{2,6})', ocr_clean_lower)
         if folio_match:
             folio_encontrado = folio_match.group(1)
             
