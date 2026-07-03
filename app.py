@@ -1189,13 +1189,14 @@ def api_analizar_factura():
         # Leer la imagen con OpenCV
         img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
         
-        # --- PREPROCESAMIENTO PARA TESSERACT ---
+        # --- PREPROCESAMIENTO PARA TESSERACT (optimizado para CPU lenta) ---
         h, w = img.shape[:2]
-        if w < 800:
-            scale = 800 / w
+        # Mantener entre 600 y 800px: suficiente para leer, no demasiado lento
+        if w < 600:
+            scale = 600 / w
             img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
-        elif w > 1400:
-            scale = 1400 / w
+        elif w > 800:
+            scale = 800 / w
             img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
         
         # Escala de grises
@@ -1212,14 +1213,15 @@ def api_analizar_factura():
         _, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         # -----------------------------------------------
         
-        # Usar Tesseract en modo automático con ambos idiomas
+        # Usar Tesseract - PSM 6 (bloque de texto uniforme) es más rápido que PSM 3
         import pytesseract
-        config_tess = '--psm 3 --oem 1'
-        full_text = pytesseract.image_to_string(img, lang='spa+eng', config=config_tess)
+        config_tess = '--psm 6 --oem 1'
+        full_text = pytesseract.image_to_string(img, lang='spa', config=config_tess)
         
         print(f"--- RAW OCR TEXT ---\n{full_text}\n--------------------", flush=True)
         
         ocr_clean_lower = full_text.lower()
+
         
         # Heurísticas de extracción locales
         serie = "Desconocida"

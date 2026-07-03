@@ -4,6 +4,8 @@ FROM python:3.10-slim
 # Evitar escritura de bytecodes y buffer de stdout
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+# Timeout extendido para dar tiempo a Tesseract en CPU lenta
+ENV GUNICORN_CMD_ARGS="--timeout 120 --workers 1"
 
 # Configurar directorio de trabajo
 WORKDIR /app
@@ -25,4 +27,4 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . .
 
 # Comando para iniciar la aplicación (Render asigna el puerto con $PORT)
-CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:${PORT:-10000} --timeout 120"]
+CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:${PORT:-10000} --timeout 120 --workers 1"]
