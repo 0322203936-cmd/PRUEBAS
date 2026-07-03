@@ -8,12 +8,10 @@ ENV PYTHONUNBUFFERED=1
 # Configurar directorio de trabajo
 WORKDIR /app
 
-# Instalar dependencias del sistema operativo (Tesseract y OpenCV)
+# Instalar dependencias del sistema operativo (Tesseract)
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     tesseract-ocr-spa \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar el archivo de requerimientos
