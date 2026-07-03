@@ -28,7 +28,7 @@ try:
         cpu_threads=1,       # Evita crear múltiples hilos que consumen RAM
         max_batch_size=1,    # Detección de una en una
         rec_batch_num=1,     # Reconocimiento de una en una (CRÍTICO para evitar pico de RAM)
-        det_limit_side_len=960,
+        det_limit_side_len=736, # Límite aún más bajo para el detector
         det_db_score_mode='fast'
     )
 except ImportError:
@@ -1204,19 +1204,28 @@ def api_analizar_factura():
         # Leer la imagen con OpenCV
         img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
         
-        # --- PREPROCESAMIENTO (Escalado Inteligente) ---
-        # Escalar imagen (DOWNSCALE) si es muy grande para no asfixiar la RAM en Render (512MB)
+        # --- PREPROCESAMIENTO EXTREMO (Para 512MB RAM) ---
+        # Forzar un máximo de 600px de ancho. Si es más grande, reducir brutalmente.
         h, w = img.shape[:2]
-        if w > 1000:
-            scale = 1000 / w
+        if w > 600:
+            scale = 600 / w
             img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+        # Si la imagen es muy pequeña, la escalamos SOLO a 600 (antes era 2000!)
         elif w < 600:
             scale = 600 / w
             img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+            
+        # Convertir a escala de grises para aligerar la memoria durante el procesamiento de PaddleOCR
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR) # PaddleOCR exige 3 canales, pero ya sin color
         # -----------------------------------------------
         
         # Usar PaddleOCR (cls=False para ahorrar memoria)
         result = reader.ocr(img, cls=False)
+        
+        # Limpiar basura de memoria inmediatamente después del OCR
+        import gc
+        gc.collect()
         
         boxes = []
         if result and result[0]:
@@ -1369,18 +1378,23 @@ def analizar_recibo():
         file_bytes = np.frombuffer(img_bytes, np.uint8)
         img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
         
-        # --- PREPROCESAMIENTO (Escalado Inteligente) ---
-        # Escalar imagen (DOWNSCALE) si es muy grande para no asfixiar la RAM en Render (512MB)
+        # --- PREPROCESAMIENTO EXTREMO (Para 512MB RAM) ---
         h, w = img.shape[:2]
-        if w > 1000:
-            scale = 1000 / w
+        if w > 600:
+            scale = 600 / w
             img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
         elif w < 600:
             scale = 600 / w
             img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+            
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
         # -----------------------------------------------
         
         result = reader.ocr(img, cls=False)
+        
+        import gc
+        gc.collect()
         
         boxes = []
         if result and result[0]:
