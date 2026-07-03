@@ -25,4 +25,4 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . .
 
 # Comando para iniciar la aplicación (Render asigna el puerto con $PORT)
-CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:${PORT:-10000}"]
+CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:${PORT:-10000} --timeout 120"]

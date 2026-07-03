@@ -1190,19 +1190,19 @@ def api_analizar_factura():
         img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
         
         # --- PREPROCESAMIENTO PARA TESSERACT ---
-        # Tesseract funciona MEJOR con imágenes más grandes
+        # 800px es el punto óptimo: suficiente detalle para Tesseract, no demasiado lento
         h, w = img.shape[:2]
-        if w < 1500:
-            scale = 1500 / w
+        if w < 800:
+            scale = 800 / w
             img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
-        elif w > 3000:
-            scale = 3000 / w
+        elif w > 1200:
+            scale = 1200 / w
             img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
         
         # Escala de grises
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         
-        # Umbral adaptativo (mejor para iluminación variable de fotos con celular)
+        # Umbral adaptativo para fotos con iluminación variable
         img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
                                     cv2.THRESH_BINARY, 31, 15)
         # -----------------------------------------------
