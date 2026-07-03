@@ -29,26 +29,20 @@ except Exception as e:
 # Columna derecha = como aparece en la hoja acuse de Walmart
 # ============================================================
 ACUSE_A_DB = {
-    "bqt lili asiatic 6 t":      "BQT LILI ASIATIC 6T",
-    "bqt lili asiatic 6t":       "BQT LILI ASIATIC 6T",
-    "bqt rosa 18 tallos":        "BQT 18 ROSAS",
-    "bqt mixto premium":         "BQT MDAY PREMIUM",
-    "rosa 12 tallos":            "ROSAS 12 MDAY",
+    # Clave: Nombre en la hoja de Acuse (en minúsculas) -> Valor: Nombre en Supabase
+    "bqt lili asiatic 6t":       "BQT LILI ASIATIC 6 T",
+    "bqt 18 rosas":              "BQT ROSA 18 TALLOS",
+    "bqt mday premium":          "BQT MIXTO PREMIUM",
+    "rosas 12 mday":             "ROSA 12 TALLOS",
     "jarron mday":               "JARRON MDAY",
-    "bqt mixto m":               "BQT MDAY M",
-    "bouquet rosas 12 t":        "BQT ROSAS 12T",
-    "bouquet rosas 12t":         "BQT ROSAS 12T",
-    "bouquet rosas 6 t":         "BQT ROSAS 6T",
-    "bouquet rosas 6t":          "BQT ROSAS 6T",
-    "bqt snapdragon 8 t":        "BQT SNAPDRAGON 8T",
-    "bqt snapdragon 8t":         "BQT SNAPDRAGON 8T",
-    "bouquets docena de rosas":  "BQT ROSAS 12T BAJA",
-    "bouquet mixto 9 t":         "BQT MIXTO 9T",
-    "bouquet mixto 9t":          "BQT MIXTO 9T",
-    "bouquet mixto 12 t":        "BQT MIXTO 12T",
-    "bouquet mixto 12t":         "BQT MIXTO 12T",
-    "bouquet mixto 15 t":        "BQT MIXTO 15T",
-    "bouquet mixto 15t":         "BQT MIXTO 15T",
+    "bqt mday m":                "BQT MIXTO M",
+    "bqt rosas 12t":             "BOUQUET ROSAS 12 T",
+    "bqt rosas 6t":              "BOUQUET ROSAS 6 T",
+    "bqt snapdragon 8t":         "BQT SNAPDRAGON 8 T",
+    "bqt rosas 12t baja":        "BOUQUETS DOCENA DE ROSAS",
+    "bqt mixto 9t":              "BOUQUET MIXTO 9 T",
+    "bqt mixto 12t":             "BOUQUET MIXTO 12 T",
+    "bqt mixto 15t":             "BOUQUET MIXTO 15 T",
 }
 
 # Mapa inverso: DB name → lista de posibles nombres en acuse (para búsqueda)
