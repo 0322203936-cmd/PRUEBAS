@@ -212,12 +212,11 @@
 
 
         <!-- Upload Area -->
-        <label for="fileInput" class="upload-card" id="uploadArea" onclick="if(this.classList.contains('disabled')) return false; this.classList.add('disabled'); this.style.opacity='0.5'; setTimeout(()=>{this.classList.remove('disabled'); this.style.opacity='1';}, 5000);">
+        <label for="fileInput" class="upload-card" id="uploadArea">
             <span class="upload-icon">📸</span>
             <div class="upload-title">Tomar foto de la Factura</div>
         </label>
         <input type="file" id="fileInput" accept="image/*" capture="environment">
-        <input type="file" id="reciboInput" accept="image/*" capture="environment" style="display: none;">
 
         <!-- Loading -->
         <div class="loading-overlay" id="loadingArea">
@@ -257,10 +256,12 @@
             <div class="prod-list" id="prodList">
                 <!-- Javascript will populate this -->
             </div>
+            
             <div id="conciliacionContainer" style="margin-top: 30px;">
-                <label for="reciboInput" id="btnEscanearRecibo" class="btn w-100" style="background: #2563eb; color: white; padding: 14px; font-weight: bold; border-radius: 12px; border: none; font-size: 16px; margin-bottom: 10px; display: inline-block; text-align: center; cursor: pointer;" onclick="if(this.classList.contains('disabled')) return false; this.classList.add('disabled'); this.style.opacity='0.5'; setTimeout(()=>{this.classList.remove('disabled'); this.style.opacity='1';}, 5000);">
+                <input type="file" id="reciboInput" accept="image/*" capture="environment" style="display: none;">
+                <button id="btnEscanearRecibo" class="btn w-100" style="background: #2563eb; color: white; padding: 14px; font-weight: bold; border-radius: 12px; border: none; font-size: 16px; margin-bottom: 10px;">
                     📸 Escanear Acuse de Recibo
-                </label>
+                </button>
                 <button id="btnCancelarFactura" class="btn w-100" style="background: #ef4444; color: white; padding: 14px; font-weight: bold; border-radius: 12px; border: none; font-size: 16px; margin-top: 10px;">
                     ❌ Factura Cancelada
                 </button>
@@ -590,18 +591,7 @@
         if (!e.target.files || e.target.files.length === 0) return;
         const file = e.target.files[0];
         
-        // DO NOT hide resultsSection or the label using display:none! 
-        // Hiding the label during the change event on iOS can abort the native file blob read.
-        const btnAcuse = document.getElementById('btnEscanearRecibo');
-        const oldText = btnAcuse.innerHTML;
-        btnAcuse.innerHTML = '⏳ Analizando imagen...';
-        btnAcuse.style.pointerEvents = 'none';
-        btnAcuse.style.opacity = '0.7';
-        
-        // We can safely hide other buttons or just leave them
-        document.getElementById('btnCancelarFactura').style.display = 'none';
-        document.getElementById('btnSinAcuse').style.display = 'none';
-        
+        resultsSection.style.display = 'none';
         loadingArea.querySelector('p').textContent = "Extrayendo cantidades del recibo de almacén...";
         loadingArea.style.display = 'flex';
         
@@ -618,32 +608,20 @@
                 body: formData
             });
             const data = await res.json();
-            
             loadingArea.style.display = 'none';
-            btnAcuse.innerHTML = oldText;
-            btnAcuse.style.pointerEvents = 'auto';
-            btnAcuse.style.opacity = '1';
             
             if (!res.ok) {
                 alert("Error analizando recibo: " + (data.error || "Desconocido"));
-                document.getElementById('btnCancelarFactura').style.display = 'block';
-                document.getElementById('btnSinAcuse').style.display = 'block';
+                resultsSection.style.display = 'block';
                 return;
             }
-            
-            // Hide the container with the buttons now that we have the result safely
-            document.getElementById('conciliacionContainer').style.display = 'none';
             
             mostrarConciliacion(data);
         } catch (err) {
             console.error(err);
             alert("Error de conexión.");
             loadingArea.style.display = 'none';
-            btnAcuse.innerHTML = oldText;
-            btnAcuse.style.pointerEvents = 'auto';
-            btnAcuse.style.opacity = '1';
-            document.getElementById('btnCancelarFactura').style.display = 'block';
-            document.getElementById('btnSinAcuse').style.display = 'block';
+            resultsSection.style.display = 'block';
         }
     });
     
@@ -748,7 +726,227 @@
         reciboInput.value = '';
     });
 
-    // Native camera is now used directly via HTML file inputs.
+    // ==========================================
+    // OpenCV LIVE SCANNER LOGIC
+    // ==========================================
+    let openCvReady = false;
+    let scannerStream = null;
+    let scanType = null; // 'factura' or 'acuse'
+    let video = document.getElementById('videoElement');
+    let canvas = document.getElementById('canvasOverlay');
+    let ctx = canvas.getContext('2d');
+    let bestContourPoints = null;
+    let animationFrameId = null;
+
+    function onOpenCvReady() {
+        openCvReady = true;
+        let loader = document.getElementById('scannerLoading');
+        if(loader) loader.style.display = 'none';
+        console.log("OpenCV.js is ready.");
+    }
+
+    // Override clicks to open scanner
+    document.getElementById('uploadArea').onclick = (e) => {
+        e.preventDefault();
+        openScanner('factura');
+    };
+    
+    // Remove old listeners for btnEscanearRecibo if they existed (we'll just replace the onclick)
+    const oldBtn = document.getElementById('btnEscanearRecibo');
+    const newBtn = oldBtn.cloneNode(true);
+    oldBtn.parentNode.replaceChild(newBtn, oldBtn);
+    newBtn.onclick = () => { openScanner('acuse'); };
+
+    async function openScanner(type) {
+        scanType = type;
+        if (!openCvReady) {
+            // Fallback to native input if OpenCV is not loaded
+            if (type === 'factura') fileInput.click();
+            else reciboInput.click();
+            return;
+        }
+
+        document.getElementById('scannerUI').style.display = 'flex';
+        document.getElementById('scannerTitle').textContent = type === 'factura' ? 'Escanear Factura' : 'Escanear Acuse';
+        
+        try {
+            scannerStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } } });
+            video.srcObject = scannerStream;
+            video.play();
+            
+            video.onloadedmetadata = () => {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                processVideo();
+            };
+        } catch (err) {
+            console.error("Camera error:", err);
+            closeScanner();
+            // Fallback to native file input if camera fails (e.g., HTTP)
+            alert("No se pudo acceder a la cámara en vivo. Usando cámara nativa del sistema.");
+            if (type === 'factura') fileInput.click();
+            else reciboInput.click();
+        }
+    }
+
+    function closeScanner() {
+        document.getElementById('scannerUI').style.display = 'none';
+        if (scannerStream) {
+            scannerStream.getTracks().forEach(track => track.stop());
+            scannerStream = null;
+        }
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+    }
+
+    function processVideo() {
+        if (!scannerStream) return;
+        
+        try {
+            let src = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            src.data.set(imgData.data);
+            
+            // Convert to grayscale
+            let gray = new cv.Mat();
+            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+            
+            // Blur & Canny Edge Detection
+            let blurred = new cv.Mat();
+            cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
+            let edges = new cv.Mat();
+            cv.Canny(blurred, edges, 75, 200, 3, false);
+            
+            // Find Contours
+            let contours = new cv.MatVector();
+            let hierarchy = new cv.Mat();
+            cv.findContours(edges, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+            
+            // Find largest contour with 4 points
+            let maxArea = 0;
+            let bestApprox = new cv.Mat();
+            
+            for (let i = 0; i < contours.size(); ++i) {
+                let cnt = contours.get(i);
+                let area = cv.contourArea(cnt);
+                if (area > 10000) {
+                    let peri = cv.arcLength(cnt, true);
+                    let approx = new cv.Mat();
+                    cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
+                    
+                    if (approx.rows === 4 && area > maxArea) {
+                        maxArea = area;
+                        approx.copyTo(bestApprox);
+                    }
+                    approx.delete();
+                }
+            }
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (bestApprox.rows === 4) {
+                bestContourPoints = [];
+                for(let i=0; i<4; i++) {
+                    bestContourPoints.push({
+                        x: bestApprox.data32S[i*2],
+                        y: bestApprox.data32S[i*2+1]
+                    });
+                }
+                
+                // Draw green bounding box
+                ctx.beginPath();
+                ctx.moveTo(bestContourPoints[0].x, bestContourPoints[0].y);
+                for(let i=1; i<4; i++) {
+                    ctx.lineTo(bestContourPoints[i].x, bestContourPoints[i].y);
+                }
+                ctx.closePath();
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = '#10b981'; // Green
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+                ctx.fill();
+            } else {
+                bestContourPoints = null;
+            }
+            
+            src.delete(); gray.delete(); blurred.delete(); edges.delete();
+            contours.delete(); hierarchy.delete(); bestApprox.delete();
+            
+        } catch (err) {
+            console.error("OpenCV error:", err);
+        }
+        
+        animationFrameId = requestAnimationFrame(processVideo);
+    }
+    
+    document.getElementById('btnCapture').onclick = () => {
+        if (!scannerStream) return;
+        
+        // Temporarily pause processing
+        cancelAnimationFrame(animationFrameId);
+        
+        let src = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        src.data.set(imgData.data);
+        
+        let finalCanvas = document.createElement('canvas');
+        
+        if (bestContourPoints && bestContourPoints.length === 4) {
+            // Sort points: Top-Left, Top-Right, Bottom-Right, Bottom-Left
+            let pts = bestContourPoints.sort((a,b) => a.y - b.y);
+            let topPts = pts.slice(0,2).sort((a,b) => a.x - b.x);
+            let bottomPts = pts.slice(2,4).sort((a,b) => a.x - b.x);
+            
+            let tl = topPts[0]; let tr = topPts[1];
+            let bl = bottomPts[0]; let br = bottomPts[1];
+            
+            let widthA = Math.hypot(br.x - bl.x, br.y - bl.y);
+            let widthB = Math.hypot(tr.x - tl.x, tr.y - tl.y);
+            let maxWidth = Math.max(Math.floor(widthA), Math.floor(widthB));
+            
+            let heightA = Math.hypot(tr.x - br.x, tr.y - br.y);
+            let heightB = Math.hypot(tl.x - bl.x, tl.y - bl.y);
+            let maxHeight = Math.max(Math.floor(heightA), Math.floor(heightB));
+            
+            let dst = new cv.Mat();
+            let dsize = new cv.Size(maxWidth, maxHeight);
+            
+            let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [tl.x, tl.y, tr.x, tr.y, br.x, br.y, bl.x, bl.y]);
+            let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, maxWidth-1, 0, maxWidth-1, maxHeight-1, 0, maxHeight-1]);
+            
+            let M = cv.getPerspectiveTransform(srcTri, dstTri);
+            cv.warpPerspective(src, dst, M, dsize, cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar());
+            
+            cv.imshow(finalCanvas, dst);
+            
+            src.delete(); dst.delete(); srcTri.delete(); dstTri.delete(); M.delete();
+        } else {
+            // No contour detected, just take the raw photo
+            cv.imshow(finalCanvas, src);
+            src.delete();
+        }
+        
+        closeScanner();
+        
+        // Convert canvas to File and mock the input change event
+        finalCanvas.toBlob((blob) => {
+            const file = new File([blob], scanType + "_scanned.jpg", { type: "image/jpeg" });
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            
+            if (scanType === 'factura') {
+                fileInput.files = dataTransfer.files;
+                fileInput.dispatchEvent(new Event('change'));
+            } else {
+                reciboInput.files = dataTransfer.files;
+                reciboInput.dispatchEvent(new Event('change'));
+            }
+        }, "image/jpeg", 0.9);
+    };
 
 </script>
 </body>
