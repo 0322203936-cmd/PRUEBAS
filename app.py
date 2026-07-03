@@ -1235,7 +1235,7 @@ def api_analizar_factura():
         return jsonify({
             "ok": True,
             "factura": {
-                "serie": db_productos[0].get("sem", "N/A") if db_productos else "N/A",
+                "serie": db_productos[0].get("salida", "N/A") if db_productos else "N/A",
                 "folio": folio_encontrado,
                 "fecha": db_productos[0].get("diario", "N/A") if db_productos else "N/A",
                 "total": f"${total_calc:,.2f}",
