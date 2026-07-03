@@ -1190,27 +1190,30 @@ def api_analizar_factura():
         img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
         
         # --- PREPROCESAMIENTO PARA TESSERACT ---
-        # 800px es el punto óptimo: suficiente detalle para Tesseract, no demasiado lento
         h, w = img.shape[:2]
         if w < 800:
             scale = 800 / w
             img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
-        elif w > 1200:
-            scale = 1200 / w
+        elif w > 1400:
+            scale = 1400 / w
             img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
         
         # Escala de grises
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         
-        # Umbral adaptativo para fotos con iluminación variable
-        img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                    cv2.THRESH_BINARY, 31, 15)
+        # CLAHE: mejora el contraste de forma local y suave
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        img = clahe.apply(img)
+        
+        # Suavizado ligero
+        img = cv2.GaussianBlur(img, (3, 3), 0)
+        
+        # Umbral de Otsu
+        _, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         # -----------------------------------------------
         
-        # Usar Tesseract con modo automático (mejor para documentos con tablas y columnas)
+        # Usar Tesseract en modo automático con ambos idiomas
         import pytesseract
-        # --psm 3: Segmentación automática de página (mejor para facturas con layout mixto)
-        # --oem 1: Motor LSTM más preciso
         config_tess = '--psm 3 --oem 1'
         full_text = pytesseract.image_to_string(img, lang='spa+eng', config=config_tess)
         
