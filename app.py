@@ -1410,45 +1410,39 @@ def analizar_recibo():
             if prod not in productos_encontrados:
                 productos_encontrados.append(prod)
 
-        # 2. Encontrar las cantidades recibidas en la parte inferior del ticket
-        # Generalmente, después de la palabra "Cant Recibid", vienen los números en formato "15.000"
-        idx_cant_recibid = -1
-        for i, b in enumerate(boxes):
-            if "cant" in b["clean"] and "recibi" in b["clean"]:
-                idx_cant_recibid = i
-                break
-                
-        cantidades_extraidas = []
-        if idx_cant_recibid != -1:
-            print(f"--- RAW ACUSE TEXT AFTER 'CANT RECIBID' ---", flush=True)
-            # Buscar todos los números con formato decimal estricto (ej. 10.000) después de "Cant Recibid"
-            for b in boxes[idx_cant_recibid + 1:]:
-                texto_crudo = b["raw"]
-                print(texto_crudo, flush=True)
-                texto_num = b["clean"].replace(",", ".")
-                # Exigir que tenga un punto decimal y al menos 2 digitos (ej. 10.00 o 10.000) para ignorar enteros como '43'
-                matches = re.findall(r'\b(\d+\.\d{2,3})\b', texto_num)
-                for m in matches:
-                    val = float(m)
-                    # Excluir totales grandes, solo queremos las cantidades unitarias (ej 15.0, 10.0, 9.0)
-                    if val < 500: 
-                        cantidades_extraidas.append(val)
-
-        # En Walmart cada item imprime su cantidad y luego otra fila con 0.000 para el IVA
-        # Filtramos los ceros si vemos el patrón
-        cantidades_reales = [c for c in cantidades_extraidas if c > 0.0]
-
+        # 2. Extraer Cantidad Recibida para cada producto
+        # En el acuse, los números vienen después del nombre del producto (ej: "bouquet rosas 12 t 15.000 15.000")
+        # El segundo número (o el último antes del siguiente producto) es la "Cant Recibida".
+        
+        full_text_para_numeros = full_text_clean.replace(",", ".")
         conciliacion = []
-        for i, prod in enumerate(productos_encontrados):
+        
+        for i, (idx_actual, prod) in enumerate(productos_encontrados_con_indice):
             prod_name = prod.get("producto", "")
             cant_esperada = float(prod.get("cantidad", 0))
             
-            # Asignar la cantidad en el mismo orden que se encontraron
+            # Definir el segmento de texto que le pertenece a este producto
+            # Va desde donde empieza este producto hasta donde empieza el siguiente (o fin del texto)
+            idx_siguiente = productos_encontrados_con_indice[i+1][0] if i + 1 < len(productos_encontrados_con_indice) else len(full_text_para_numeros)
+            
+            segmento = full_text_para_numeros[idx_actual:idx_siguiente]
+            
+            # Buscar todos los números con formato decimal (ej. 15.000 o 15.00) en su segmento
+            matches = re.findall(r'\b(\d+\.\d{2,3})\b', segmento)
+            
+            cantidades_validas = []
+            for m in matches:
+                val = float(m)
+                # Las cantidades suelen ser menores a 500, ignoramos números muy grandes que podrían ser IDs o precios totales
+                if 0 < val < 500:
+                    cantidades_validas.append(val)
+                    
             cant_recibida = 0
-            if i < len(cantidades_reales):
-                val = cantidades_reales[i]
+            if cantidades_validas:
+                # Tomamos el ÚLTIMO número válido de este segmento, que corresponde a la columna "Cant Recibida"
+                val = cantidades_validas[-1]
                 
-                # Mitigar error OCR (ej. lee 10 como 18, o 10.000 como 18.000)
+                # Mitigar error de OCR común donde '10' se lee como '18'
                 if val == 18 and cant_esperada == 10:
                     val = 10.0
                 elif val == 18.000 and cant_esperada == 10:
@@ -1456,15 +1450,31 @@ def analizar_recibo():
                     
                 cant_recibida = val
             else:
-                cant_recibida = 0 # No se encontró su correspondiente
-
+                cant_recibida = 0 # No se encontró cantidad para este producto
+                
+            estado = "OK" if cant_recibida == cant_esperada else "DIFF"
+            
             conciliacion.append({
                 "producto": prod_name,
                 "esperado": cant_esperada,
                 "recibido": cant_recibida,
                 "diferencia": cant_recibida - cant_esperada,
-                "estado": "OK" if cant_recibida == cant_esperada else "DIFF"
+                "estado": estado
             })
+
+        # Para los productos que no se detectaron en absoluto (los que se agregaron al final)
+        productos_ya_procesados = [p[1].get("producto") for p in productos_encontrados_con_indice]
+        for prod in esperados:
+            prod_name = prod.get("producto", "")
+            if prod_name not in productos_ya_procesados:
+                cant_esperada = float(prod.get("cantidad", 0))
+                conciliacion.append({
+                    "producto": prod_name,
+                    "esperado": cant_esperada,
+                    "recibido": 0,
+                    "diferencia": 0 - cant_esperada,
+                    "estado": "DIFF"
+                })
             
         # Re-ordenar la conciliación para que coincida con el orden original de `esperados`
         conciliacion_ordenada = []
