@@ -590,7 +590,18 @@
         if (!e.target.files || e.target.files.length === 0) return;
         const file = e.target.files[0];
         
-        resultsSection.style.display = 'none';
+        // DO NOT hide resultsSection or the label using display:none! 
+        // Hiding the label during the change event on iOS can abort the native file blob read.
+        const btnAcuse = document.getElementById('btnEscanearRecibo');
+        const oldText = btnAcuse.innerHTML;
+        btnAcuse.innerHTML = '⏳ Analizando imagen...';
+        btnAcuse.style.pointerEvents = 'none';
+        btnAcuse.style.opacity = '0.7';
+        
+        // We can safely hide other buttons or just leave them
+        document.getElementById('btnCancelarFactura').style.display = 'none';
+        document.getElementById('btnSinAcuse').style.display = 'none';
+        
         loadingArea.querySelector('p').textContent = "Extrayendo cantidades del recibo de almacén...";
         loadingArea.style.display = 'flex';
         
@@ -607,20 +618,32 @@
                 body: formData
             });
             const data = await res.json();
+            
             loadingArea.style.display = 'none';
+            btnAcuse.innerHTML = oldText;
+            btnAcuse.style.pointerEvents = 'auto';
+            btnAcuse.style.opacity = '1';
             
             if (!res.ok) {
                 alert("Error analizando recibo: " + (data.error || "Desconocido"));
-                resultsSection.style.display = 'block';
+                document.getElementById('btnCancelarFactura').style.display = 'block';
+                document.getElementById('btnSinAcuse').style.display = 'block';
                 return;
             }
+            
+            // Hide the container with the buttons now that we have the result safely
+            document.getElementById('conciliacionContainer').style.display = 'none';
             
             mostrarConciliacion(data);
         } catch (err) {
             console.error(err);
             alert("Error de conexión.");
             loadingArea.style.display = 'none';
-            resultsSection.style.display = 'block';
+            btnAcuse.innerHTML = oldText;
+            btnAcuse.style.pointerEvents = 'auto';
+            btnAcuse.style.opacity = '1';
+            document.getElementById('btnCancelarFactura').style.display = 'block';
+            document.getElementById('btnSinAcuse').style.display = 'block';
         }
     });
     
