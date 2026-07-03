@@ -303,6 +303,30 @@
     </div>
 </div>
 
+<!-- Modal: Ingresar Folio Manualmente -->
+<div id="folioModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.7); z-index:99999; justify-content:center; align-items:center;">
+    <div style="background:white; border-radius:20px; padding:32px 28px; width:90%; max-width:380px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); text-align:center;">
+        <div style="font-size:48px; margin-bottom:12px;">🧾</div>
+        <h2 style="font-size:20px; font-weight:700; color:#1e293b; margin-bottom:8px;">Ingresa el Folio</h2>
+        <p style="color:#64748b; font-size:14px; margin-bottom:20px;">Escribe el número de folio que aparece en la factura.</p>
+        <input 
+            id="inputFolioManual" 
+            type="number" 
+            placeholder="Ej: 800" 
+            style="width:100%; padding:14px 16px; border:2px solid #e2e8f0; border-radius:12px; font-size:22px; font-weight:700; text-align:center; color:#1e293b; outline:none; margin-bottom:16px;"
+            onfocus="this.style.borderColor='#6366f1'"
+            onblur="this.style.borderColor='#e2e8f0'"
+        >
+        <button onclick="buscarFolioManual()" style="width:100%; padding:14px; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:white; border:none; border-radius:12px; font-size:16px; font-weight:700; cursor:pointer; margin-bottom:10px;">
+            🔍 Buscar Folio
+        </button>
+        <button onclick="cerrarFolioModal()" style="width:100%; padding:12px; background:#f1f5f9; color:#64748b; border:none; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer;">
+            Cancelar
+        </button>
+    </div>
+</div>
+
+
 <!-- Load OpenCV.js asynchronously -->
 <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
 
@@ -324,21 +348,34 @@
     let esperados = []; // Para guardar el estado de la factura
     let currentFolio = null;
     let currentUrlFactura = null;
-    let currentConciliacion = [];
+    let capturedFacturaFile = null; // guardamos la foto para subirla después
 
     fileInput.addEventListener('change', async (e) => {
         if (!e.target.files || e.target.files.length === 0) return;
-        
         const file = e.target.files[0];
         if (!file) return;
+        
+        // Guardamos la foto y mostramos el modal de folio
+        capturedFacturaFile = file;
+        document.getElementById('folioModal').style.display = 'flex';
+        document.getElementById('inputFolioManual').value = '';
+        setTimeout(() => document.getElementById('inputFolioManual').focus(), 100);
+    });
 
+    async function buscarFolioManual() {
+        const folio = document.getElementById('inputFolioManual').value.trim();
+        if (!folio) {
+            alert('Por favor ingresa el número de folio.');
+            return;
+        }
+        
+        document.getElementById('folioModal').style.display = 'none';
         uploadArea.style.display = 'none';
-        resultsSection.style.display = 'none';
         loadingArea.style.display = 'flex';
 
         const formData = new FormData();
-        formData.append('imagen', file);
-
+        formData.append('imagen', capturedFacturaFile);
+        formData.append('folio_manual', folio);
 
         try {
             const res = await fetch('/api/analizar_factura', {
@@ -350,13 +387,13 @@
             loadingArea.style.display = 'none';
 
             if (!res.ok) {
-                alert("Error analizando: " + (data.error || "Desconocido"));
+                alert("Error: " + (data.error || "Desconocido"));
                 uploadArea.style.display = 'block';
                 return;
             }
 
-            if (data.factura && data.factura.folio === 'No detectado' && data.db_status === 'NOT_FOUND') {
-                alert("No se detectó una factura válida o no se pudo leer el folio. Por favor, intenta tomar la foto nuevamente.");
+            if (data.db_status === 'NOT_FOUND') {
+                alert(`❌ El folio "${folio}" no se encontró en la base de datos. Verifica el número e inténtalo de nuevo.`);
                 uploadArea.style.display = 'block';
                 return;
             }
@@ -368,6 +405,18 @@
             loadingArea.style.display = 'none';
             uploadArea.style.display = 'block';
         }
+    }
+
+    function cerrarFolioModal() {
+        document.getElementById('folioModal').style.display = 'none';
+        capturedFacturaFile = null;
+        fileInput.value = '';
+    }
+
+    // Permitir confirmar con Enter
+    document.addEventListener('DOMContentLoaded', () => {
+        const inp = document.getElementById('inputFolioManual');
+        if (inp) inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') buscarFolioManual(); });
     });
 
     function mostrarResultados(data) {

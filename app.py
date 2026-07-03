@@ -1180,167 +1180,78 @@ def api_analizar_factura():
     try:
         import numpy as np
         import cv2
-        import unicodedata
-        import re
+        import base64, time
 
         raw_bytes = file.read()
-        file_bytes = np.frombuffer(raw_bytes, np.uint8)
-
-        # Leer la imagen con OpenCV
-        img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
         
-        # --- PREPROCESAMIENTO PARA TESSERACT (optimizado para CPU lenta) ---
-        h, w = img.shape[:2]
-        # Mantener entre 600 y 800px: suficiente para leer, no demasiado lento
-        if w < 600:
-            scale = 600 / w
-            img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
-        elif w > 800:
-            scale = 800 / w
-            img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+        # El folio siempre viene manual desde el modal del usuario
+        folio_encontrado = request.form.get('folio_manual', '').strip()
         
-        # Escala de grises
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        if not folio_encontrado:
+            return jsonify({"ok": False, "error": "No se proporcionó un folio"}), 400
         
-        # CLAHE: mejora el contraste de forma local y suave
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-        img = clahe.apply(img)
+        print(f"Buscando folio manual: {folio_encontrado}", flush=True)
         
-        # Suavizado ligero
-        img = cv2.GaussianBlur(img, (3, 3), 0)
+        # Buscar el folio en Supabase
+        db_res = supabase_client.table("facturas_folios").select("*").eq("folio", folio_encontrado).execute()
+        db_productos = db_res.data
+        db_status = "FOUND" if db_productos else "NOT_FOUND"
         
-        # Umbral de Otsu
-        _, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        # -----------------------------------------------
-        
-        # Usar Tesseract - PSM 6 (bloque de texto uniforme) es más rápido que PSM 3
-        import pytesseract
-        config_tess = '--psm 6 --oem 1'
-        full_text = pytesseract.image_to_string(img, lang='spa', config=config_tess)
-        
-        print(f"--- RAW OCR TEXT ---\n{full_text}\n--------------------", flush=True)
-        
-        ocr_clean_lower = full_text.lower()
-
-        
-        # Heurísticas de extracción locales
-        serie = "Desconocida"
-        folio_encontrado = "No detectado"
-        fecha_detectada = "No detectada"
-        total_detectado = "No detectado"
-        
-        # Buscar Folio - múltiples patrones para tolerar errores de OCR
-        # ej. "Folio: 800", "Folio 800", "Foli0: 800", "F0lio 800"
-        folio_match = re.search(r'fol[^\d\n]{0,6}(\d{2,6})', ocr_clean_lower)
-        if not folio_match:
-            # Fallback: buscar "folio" seguido de número en la misma línea
-            folio_match = re.search(r'foli[o0]\s*[:\-]?\s*(\d{2,6})', ocr_clean_lower)
-        if folio_match:
-            folio_encontrado = folio_match.group(1)
-            
-        print(f"--- RAW OCR TEXT ---\n{full_text}\n--------------------", flush=True)
-            
-        # Buscar Fecha (ej. "fecha 30/jun/2026 14:51:19")
-        fecha_match = re.search(r'fecha\s*:?\s*(\d{2}/[a-z]{3}/\d{4}[^\s]*)', ocr_clean_lower)
-        if fecha_match:
-            fecha_detectada = fecha_match.group(1)
-            
-        # Buscar Total (ej. "total: $3,166.00")
-        total_match = re.search(r'total\s*:?\s*\$?\s*([\d,]+\.\d{2})', ocr_clean_lower)
-        if total_match:
-            total_detectado = total_match.group(1).replace(",", "")
-            
-        # Buscar Serie (ej. "Serie 2947", "Serle5295")
-        serie_match = re.search(r'ser[il]e[\s:.,#]*([a-z0-9\-]+)', ocr_clean_lower)
-        if serie_match:
-            serie = serie_match.group(1).upper()
-            
-        print(f"Extracción Local exitosa. Folio: {folio_encontrado} Fecha: {fecha_detectada}", flush=True)
-        
-        folio_manual = request.form.get('folio_manual', '').strip()
-        if folio_manual:
-            folio_encontrado = folio_manual
-            print(f"Folio sobrescrito manualmente: {folio_encontrado}", flush=True)
-            
-        db_productos = []
-        db_status = "NOT_FOUND"
-        
-        if folio_encontrado != "No detectado":
-            db_res = supabase_client.table("facturas_folios").select("*").eq("folio", folio_encontrado).execute()
-            db_productos = db_res.data
-            if db_productos:
-                db_status = "FOUND"
-                
-        serie = "Desconocida"
-        
-        if not folio_encontrado or folio_encontrado == "No detectado":
+        if db_status == "NOT_FOUND":
             return jsonify({
                 "ok": True,
-                "factura": {"serie": serie, "folio": folio_encontrado, "fecha": fecha_detectada, "total": total_detectado, "url_factura": ""},
+                "factura": {"serie": "N/A", "folio": folio_encontrado, "fecha": "N/A", "total": "N/A", "url_factura": ""},
                 "db_status": "NOT_FOUND",
                 "comparacion": [],
-                "ocr_raw_text": full_text
+                "ocr_raw_text": ""
             })
-            
+        
+        # Calcular comparación desde la DB
+        import unicodedata
         comparacion = []
-        if db_status == "FOUND":
-            if total_detectado == "No detectado" or total_detectado == "":
-                subtotal_calc = sum(float(p.get("unidades", 0)) * float(p.get("precio_unidad", 0)) for p in db_productos)
-                total_detectado = f"Calculado s/IVA: ${subtotal_calc:,.2f}"
-                
-            import unicodedata
-            def remove_accents(input_str):
-                return unicodedata.normalize('NFKD', input_str).encode('ASCII', 'ignore').decode('utf-8')
-                
-            ocr_clean = remove_accents(full_text.lower())
-            
-            for db_p in db_productos:
-                prod_name = str(db_p.get("producto", "")).strip()
-                cant_db = float(db_p.get("unidades", 0))
-                precio_db = float(db_p.get("precio_unidad", 0))
-                
-                prod_clean = remove_accents(prod_name.lower())
-                words = prod_clean.split()
-                matched_words = sum(1 for w in words if w in ocr_clean)
-                
-                is_match = False
-                if len(words) > 0 and (matched_words / len(words)) >= 0.5:
-                    is_match = True
-                    
-                comparacion.append({
-                    "producto_db": prod_name,
-                    "cantidad_db": cant_db,
-                    "precio_db": precio_db,
-                    "estado": "OK" if is_match else "DIFF"
-                })
-                    
-        import base64, time
+        total_calc = 0
+        for db_p in db_productos:
+            prod_name = str(db_p.get("producto", "")).strip()
+            cant_db = float(db_p.get("unidades", 0))
+            precio_db = float(db_p.get("precio_unidad", 0))
+            total_calc += cant_db * precio_db
+            comparacion.append({
+                "producto_db": prod_name,
+                "cantidad_db": cant_db,
+                "precio_db": precio_db,
+                "estado": "OK"
+            })
+        
+        # Subir foto a Supabase
         url_factura_temp = ""
         try:
+            file_bytes = np.frombuffer(raw_bytes, np.uint8)
             b64_str = base64.b64encode(file_bytes).decode('utf-8')
-            ruta_supa = f"Facturas/factura_{int(time.time())}.jpg"
+            ruta_supa = f"Facturas/factura_{folio_encontrado}_{int(time.time())}.jpg"
             url_factura_temp = subir_foto_supabase(b64_str, ruta_supa)
         except Exception as ex:
             print(f"Error subiendo foto factura: {ex}")
             
         return jsonify({
-              "ok": True,
-              "factura": {
-                  "serie": serie,
-                  "folio": folio_encontrado,
-                  "fecha": fecha_detectada,
-                  "total": total_detectado,
-                  "url_factura": url_factura_temp
-              },
-              "db_status": db_status,
-              "comparacion": comparacion,
-              "productos_gemini": [],
-              "ocr_raw_text": full_text
-          })
+            "ok": True,
+            "factura": {
+                "serie": db_productos[0].get("serie", "N/A") if db_productos else "N/A",
+                "folio": folio_encontrado,
+                "fecha": db_productos[0].get("fecha", "N/A") if db_productos else "N/A",
+                "total": f"${total_calc:,.2f}",
+                "url_factura": url_factura_temp
+            },
+            "db_status": db_status,
+            "comparacion": comparacion,
+            "productos_gemini": [],
+            "ocr_raw_text": ""
+        })
         
     except Exception as e:
-        print(f"Error en analisis Gemini: {e}")
+        print(f"Error en analizar_factura: {e}")
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
 
 @app.route('/api/analizar_recibo', methods=['POST'])
 def analizar_recibo():
