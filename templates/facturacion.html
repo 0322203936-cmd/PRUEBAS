@@ -259,9 +259,9 @@
             
             <div id="conciliacionContainer" style="margin-top: 30px;">
                 <input type="file" id="reciboInput" accept="image/*" capture="environment" style="display: none;">
-                <button id="btnEscanearRecibo" class="btn w-100" style="background: #2563eb; color: white; padding: 14px; font-weight: bold; border-radius: 12px; border: none; font-size: 16px; margin-bottom: 10px;">
+                <label for="reciboInput" class="btn w-100" style="background: #2563eb; color: white; padding: 14px; font-weight: bold; border-radius: 12px; border: none; font-size: 16px; margin-bottom: 10px; display: inline-block; text-align: center; cursor: pointer;">
                     📸 Escanear Acuse de Recibo
-                </button>
+                </label>
                 <button id="btnCancelarFactura" class="btn w-100" style="background: #ef4444; color: white; padding: 14px; font-weight: bold; border-radius: 12px; border: none; font-size: 16px; margin-top: 10px;">
                     ❌ Factura Cancelada
                 </button>
@@ -740,28 +740,6 @@
 
     function onOpenCvReady() {
         openCvReady = true;
-        let loader = document.getElementById('scannerLoading');
-        if(loader) loader.style.display = 'none';
-        console.log("OpenCV.js is ready.");
-    }
-
-    // Override clicks to open scanner
-    document.getElementById('uploadArea').onclick = (e) => {
-        e.preventDefault();
-        openScanner('factura');
-    };
-    
-    // Remove old listeners for btnEscanearRecibo if they existed (we'll just replace the onclick)
-    const oldBtn = document.getElementById('btnEscanearRecibo');
-    const newBtn = oldBtn.cloneNode(true);
-    oldBtn.parentNode.replaceChild(newBtn, oldBtn);
-    newBtn.onclick = () => { openScanner('acuse'); };
-
-    async function openScanner(type) {
-        scanType = type;
-        if (!openCvReady) {
-            // Fallback to native input if OpenCV is not loaded
-            if (type === 'factura') fileInput.click();
             else reciboInput.click();
             return;
         }

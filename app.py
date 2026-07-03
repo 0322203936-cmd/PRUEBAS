@@ -1427,13 +1427,13 @@ def analizar_recibo():
             
             segmento = full_text_para_numeros[idx_actual:idx_siguiente]
             
-            # Buscar todos los números con formato decimal (ej. 15.000 o 15.00) en su segmento
-            matches = re.findall(r'\b(\d+\.\d{2,3})\b', segmento)
+            # Buscar todos los números con formato decimal EXACTO de 3 dígitos (ej. 15.000)
+            # Esto evita confundir con precios (ej. 113.00) o porcentajes (0.00%) que tienen 2.
+            matches = re.findall(r'\b(\d+\.\d{3})\b', segmento)
             
             cantidades_validas = []
             for m in matches:
                 val = float(m)
-                # Las cantidades suelen ser menores a 500, ignoramos números muy grandes que podrían ser IDs o precios totales
                 if 0 < val < 500:
                     cantidades_validas.append(val)
                     
